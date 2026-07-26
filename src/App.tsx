@@ -28,6 +28,16 @@ const StudyCalendarPage = lazy(() =>
     default: m.StudyCalendarPage,
   })),
 );
+const ReviewListPage = lazy(() =>
+  import('./presentation/pages/review/ReviewListPage').then((m) => ({
+    default: m.ReviewListPage,
+  })),
+);
+const ReviewDetailPage = lazy(() =>
+  import('./presentation/pages/review/ReviewDetailPage').then((m) => ({
+    default: m.ReviewDetailPage,
+  })),
+);
 
 function PageFallback() {
   return (
@@ -50,6 +60,8 @@ function App() {
                 <Route path="/study" element={<StudyOverviewPage />} />
                 <Route path="/study/topics" element={<StudyTopicsPage />} />
                 <Route path="/study/calendar" element={<StudyCalendarPage />} />
+                <Route path="/review" element={<ReviewListPage />} />
+                <Route path="/review/:reviewId" element={<ReviewDetailPage />} />
               </Route>
             </Route>
           </Routes>

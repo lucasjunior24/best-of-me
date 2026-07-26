@@ -1,8 +1,11 @@
 import { useState, useCallback, useMemo } from 'react';
 import type { CalendarDayFull } from '../../core/entities/ProgressData';
 import type { StudyTopic } from '../../core/entities/StudyTopic';
+import type { CreateQuestionnaireInput } from '../../core/entities/ReviewQuestionnaire';
 import { container } from '../../di/container';
 import { handleError } from '../../shared/errorHandler';
+
+type ModuleFilter = 'all' | 'study' | 'review';
 
 interface UseCalendarSessionsReturn {
   calendarDays: CalendarDayFull[];
@@ -11,10 +14,13 @@ interface UseCalendarSessionsReturn {
   error: string | null;
   currentMonth: { year: number; month: number };
   selectedTopicIds: string[];
+  moduleFilter: ModuleFilter;
   navigateMonth: (direction: 'prev' | 'next') => void;
   goToToday: () => void;
   filterByTopics: (topicIds: string[]) => void;
+  setModuleFilter: (filter: ModuleFilter) => void;
   toggleSession: (sessionId: string) => Promise<void>;
+  saveQuestionnaire: (userId: string, input: CreateQuestionnaireInput) => Promise<boolean>;
   loadMonth: (year: number, month: number) => Promise<void>;
   /** True se nenhum dia do mês tem atividades (estudos + revisões) */
   isEmptyMonth: boolean;
@@ -26,6 +32,7 @@ export function useCalendarSessions(): UseCalendarSessionsReturn {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
+  const [moduleFilter, setModuleFilter] = useState<ModuleFilter>('all');
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth() + 1 };
@@ -91,6 +98,22 @@ export function useCalendarSessions(): UseCalendarSessionsReturn {
     setSelectedTopicIds(topicIds);
   }, []);
 
+  const saveQuestionnaire = useCallback(
+    async (userId: string, input: CreateQuestionnaireInput): Promise<boolean> => {
+      try {
+        await container.useCases.createOrUpdateQuestionnaire.execute(userId, input);
+        container.toastService.success('Questionário registrado! 🎉');
+        // Recarregar o mês para refletir a mudança nos dados do calendário
+        return true;
+      } catch (err) {
+        const message = handleError(err);
+        container.toastService.error(message);
+        return false;
+      }
+    },
+    [],
+  );
+
   const toggleSession = useCallback(
     async (sessionId: string) => {
       // Update otimista
@@ -135,17 +158,48 @@ export function useCalendarSessions(): UseCalendarSessionsReturn {
     return calendarDays.length > 0 && calendarDays.every((d) => !d.hasActivities);
   }, [calendarDays]);
 
+  // Filtrar calendarDays pelo moduleFilter
+  const filteredDays = useMemo(() => {
+    if (moduleFilter === 'all') return calendarDays;
+    return calendarDays.map((day) => ({
+      ...day,
+      studySessions: moduleFilter === 'study' ? day.studySessions : [],
+      reviewSessions: moduleFilter === 'review' ? day.reviewSessions : [],
+      allCompleted:
+        moduleFilter === 'study'
+          ? day.studySessions.length > 0 && day.studySessions.every((s) => s.completed)
+          : moduleFilter === 'review'
+            ? day.reviewSessions.length > 0 && day.reviewSessions.every((r) => r.completed)
+            : day.allCompleted,
+      anyCompleted:
+        moduleFilter === 'study'
+          ? day.studySessions.some((s) => s.completed)
+          : moduleFilter === 'review'
+            ? day.reviewSessions.some((r) => r.completed)
+            : day.anyCompleted,
+      hasActivities:
+        moduleFilter === 'study'
+          ? day.studySessions.length > 0
+          : moduleFilter === 'review'
+            ? day.reviewSessions.length > 0
+            : day.hasActivities,
+    }));
+  }, [calendarDays, moduleFilter]);
+
   return {
-    calendarDays,
+    calendarDays: filteredDays,
     topics,
     loading,
     error,
     currentMonth,
     selectedTopicIds,
+    moduleFilter,
     navigateMonth,
     goToToday,
     filterByTopics,
+    setModuleFilter,
     toggleSession,
+    saveQuestionnaire,
     loadMonth,
     isEmptyMonth,
   };

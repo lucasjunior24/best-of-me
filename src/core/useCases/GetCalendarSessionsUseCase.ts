@@ -1,9 +1,13 @@
 import type { IStudyRepository } from '../ports/IStudyRepository';
+import type { IReviewRepository } from '../ports/IReviewRepository';
 import type { CalendarDayFull, ReviewSessionCalendarData } from '../entities/ProgressData';
 import type { StudyTopic } from '../entities/StudyTopic';
 
 export class GetCalendarSessionsUseCase {
-  constructor(private readonly studyRepository: IStudyRepository) {}
+  constructor(
+    private readonly studyRepository: IStudyRepository,
+    private readonly reviewRepository?: IReviewRepository,
+  ) {}
 
   async execute(
     userId: string,
@@ -11,6 +15,7 @@ export class GetCalendarSessionsUseCase {
     endDate: string,
     topicIds?: string[],
   ): Promise<CalendarDayFull[]> {
+    // Buscar sessões de estudo
     const sessions = await this.studyRepository.getSessionsByDateRange(
       userId,
       startDate,
@@ -47,6 +52,22 @@ export class GetCalendarSessionsUseCase {
       });
     }
 
+    // Buscar sessões de revisão (se o repository estiver disponível)
+    const reviewSessionsByDate = new Map<string, ReviewSessionCalendarData[]>();
+    if (this.reviewRepository) {
+      const reviewSessions = await this.reviewRepository.getReviewSessionsByDateRange(
+        userId,
+        startDate,
+        endDate,
+      );
+
+      for (const rs of reviewSessions) {
+        const list = reviewSessionsByDate.get(rs.date) ?? [];
+        list.push(rs);
+        reviewSessionsByDate.set(rs.date, list);
+      }
+    }
+
     // Gerar lista completa de dias do mês
     const [yearStr, monthStr] = startDate.split('-');
     const year = parseInt(yearStr, 10);
@@ -61,10 +82,16 @@ export class GetCalendarSessionsUseCase {
     for (let day = 1; day <= lastDay; day++) {
       const date = `${yearStr}-${monthStr}-${String(day).padStart(2, '0')}`;
       const studySessions = sessionsByDate.get(date) ?? [];
-      const reviewSessions: ReviewSessionCalendarData[] = []; // Será preenchido na Sprint 14
+      const reviewSessions = reviewSessionsByDate.get(date) ?? [];
 
-      const allCompleted = studySessions.length > 0 && studySessions.every((s) => s.completed);
-      const anyCompleted = studySessions.some((s) => s.completed);
+      // allCompleted: todas as atividades do dia (estudos + revisões) concluídas
+      const allStudyCompleted = studySessions.every((s) => s.completed);
+      const allReviewCompleted = reviewSessions.every((r) => r.completed);
+      const totalActivities = studySessions.length + reviewSessions.length;
+      const allCompleted = totalActivities > 0 && allStudyCompleted && allReviewCompleted;
+
+      const anyCompleted =
+        studySessions.some((s) => s.completed) || reviewSessions.some((r) => r.completed);
 
       allDays.push({
         date,
@@ -75,7 +102,7 @@ export class GetCalendarSessionsUseCase {
         reviewSessions,
         allCompleted,
         anyCompleted,
-        hasActivities: studySessions.length > 0,
+        hasActivities: totalActivities > 0,
       });
     }
 

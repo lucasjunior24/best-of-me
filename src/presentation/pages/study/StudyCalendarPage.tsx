@@ -36,9 +36,11 @@ export function StudyCalendarPage() {
     navigateMonth,
     goToToday,
     filterByTopics,
+    moduleFilter,
     toggleSession,
     loadMonth,
     isEmptyMonth,
+    setModuleFilter,
   } = useCalendarSessions();
 
   const { gridDays, paddingBefore, paddingAfter } = useCalendarGrid(calendarDays, currentMonth);
@@ -166,8 +168,48 @@ export function StudyCalendarPage() {
         </div>
       </div>
 
-      {/* Filtro por temas */}
-      {topics.length > 0 && (
+      {/* Filtro por módulo */}
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setModuleFilter('all')}
+          className={twMerge(
+            'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+            moduleFilter === 'all'
+              ? 'bg-brand-600 text-white dark:bg-brand-500'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700',
+          )}
+        >
+          Todos
+        </button>
+        <button
+          type="button"
+          onClick={() => setModuleFilter('study')}
+          className={twMerge(
+            'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+            moduleFilter === 'study'
+              ? 'bg-blue-600 text-white dark:bg-blue-500'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700',
+          )}
+        >
+          📚 Estudos
+        </button>
+        <button
+          type="button"
+          onClick={() => setModuleFilter('review')}
+          className={twMerge(
+            'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+            moduleFilter === 'review'
+              ? 'bg-purple-600 text-white dark:bg-purple-500'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700',
+          )}
+        >
+          📝 Revisões
+        </button>
+      </div>
+
+      {/* Filtro por temas (apenas quando módulo "Todos" ou "Estudos" está ativo) */}
+      {topics.length > 0 && moduleFilter !== 'review' && (
         <div className="flex flex-wrap gap-2">
           <button
             type="button"

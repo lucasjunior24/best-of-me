@@ -33,6 +33,24 @@ export function HomePage() {
             </div>
           </Link>
 
+          {/* Card Revisões */}
+          <Link
+            to="/review"
+            className="group rounded-2xl border border-gray-200 bg-white p-6 text-left shadow-sm transition hover:border-purple-300 hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:hover:border-purple-700"
+          >
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-100 text-xl dark:bg-purple-900/50">
+                📝
+              </span>
+              <div>
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100">Revisões</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Revisões espaçadas com métricas de acertos
+                </p>
+              </div>
+            </div>
+          </Link>
+
           {/* Card Academia (desabilitado) */}
           <div className="relative rounded-2xl border border-gray-200 bg-gray-50 p-6 text-left opacity-60 dark:border-gray-800 dark:bg-gray-900/50">
             <div className="flex items-center gap-3">
