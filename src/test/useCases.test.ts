@@ -272,13 +272,24 @@ describe('GetCalendarSessionsUseCase', () => {
     const useCase = new GetCalendarSessionsUseCase(repo);
     const result = await useCase.execute('user-1', '2026-07-01', '2026-07-31');
 
-    expect(result).toHaveLength(1); // Um dia: 2026-07-15
-    expect(result[0].date).toBe('2026-07-15');
-    expect(result[0].sessions).toHaveLength(2);
-    expect(result[0].sessions[0].topicName).toBe('React');
-    expect(result[0].sessions[0].topicColor).toBe('#3b82f6');
-    expect(result[0].anyCompleted).toBe(true);
-    expect(result[0].allCompleted).toBe(false);
+    // Deve retornar todos os 31 dias de julho
+    expect(result).toHaveLength(31);
+
+    // O dia 15 deve ter as 2 sessões
+    const day15 = result.find((d) => d.date === '2026-07-15')!;
+    expect(day15).toBeDefined();
+    expect(day15.studySessions).toHaveLength(2);
+    expect(day15.studySessions[0].topicName).toBe('React');
+    expect(day15.studySessions[0].topicColor).toBe('#3b82f6');
+    expect(day15.anyCompleted).toBe(true);
+    expect(day15.allCompleted).toBe(false);
+    expect(day15.hasActivities).toBe(true);
+
+    // Dias sem sessões devem ter hasActivities=false
+    const day1 = result.find((d) => d.date === '2026-07-01')!;
+    expect(day1.hasActivities).toBe(false);
+    expect(day1.studySessions).toHaveLength(0);
+    expect(day1.isCurrentMonth).toBe(true);
   });
 });
 

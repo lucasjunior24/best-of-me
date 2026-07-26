@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom';
 import { twMerge } from 'tailwind-merge';
 import { useAuth } from '../../hooks/useAuth';
 import { useCalendarSessions } from '../../hooks/useCalendarSessions';
+import { useCalendarGrid } from '../../hooks/useCalendarGrid';
 import { Button } from '../../components/ui/Button';
-import type { CalendarDay } from '../../../core/entities/ProgressData';
+import type { CalendarDayFull } from '../../../core/entities/ProgressData';
 
 const MONTHS = [
   'Janeiro',
@@ -37,19 +38,18 @@ export function StudyCalendarPage() {
     filterByTopics,
     toggleSession,
     loadMonth,
+    isEmptyMonth,
   } = useCalendarSessions();
 
-  const [selectedDay, setSelectedDay] = useState<CalendarDay | null>(null);
+  const { gridDays, paddingBefore, paddingAfter } = useCalendarGrid(calendarDays, currentMonth);
+  const paddingBeforeSet = useMemo(
+    () => new Set(paddingBefore.map((d) => d.date)),
+    [paddingBefore],
+  );
+  const paddingAfterSet = useMemo(() => new Set(paddingAfter.map((d) => d.date)), [paddingAfter]);
 
-  const today = useMemo(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  }, []);
-
-  const firstDayOffset = useMemo(() => {
-    const firstDay = new Date(currentMonth.year, currentMonth.month - 1, 1);
-    return firstDay.getDay();
-  }, [currentMonth]);
+  const [selectedDay, setSelectedDay] = useState<CalendarDayFull | null>(null);
+  const [hoveredDay, setHoveredDay] = useState<string | null>(null);
 
   const loadData = useCallback(() => {
     if (user) {
@@ -61,8 +61,9 @@ export function StudyCalendarPage() {
     loadData();
   }, [loadData]);
 
-  const handleDayClick = (day: CalendarDay) => {
-    if (day.sessions.length > 0) {
+  const handleDayClick = (day: CalendarDayFull) => {
+    if (!day.isCurrentMonth) return;
+    if (day.hasActivities) {
       setSelectedDay(day);
     }
   };
@@ -217,21 +218,8 @@ export function StudyCalendarPage() {
         </div>
       )}
 
-      {/* Empty state: mês sem sessões */}
-      {topics.length > 0 && calendarDays.every((d) => d.sessions.length === 0) && (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 py-16 dark:border-gray-700">
-          <span className="text-4xl">📭</span>
-          <p className="mt-4 text-gray-500 dark:text-gray-400">
-            Nenhum estudo agendado para este mês
-          </p>
-          <p className="text-sm text-gray-400 dark:text-gray-500">
-            Agende estudos nos seus temas para vê-los aqui.
-          </p>
-        </div>
-      )}
-
-      {/* Grid do Calendário */}
-      {topics.length > 0 && !calendarDays.every((d) => d.sessions.length === 0) && (
+      {/* Grid do Calendário — SEMPRE renderiza (inclusive meses vazios) */}
+      {topics.length > 0 && (
         <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 overflow-hidden">
           {/* Cabeçalho dias da semana */}
           <div className="grid grid-cols-7 border-b border-gray-200 dark:border-gray-700">
@@ -247,73 +235,142 @@ export function StudyCalendarPage() {
 
           {/* Dias do mês */}
           <div className="grid grid-cols-7">
-            {/* Células vazias antes do primeiro dia */}
-            {Array.from({ length: firstDayOffset }).map((_, i) => (
-              <div
-                key={`empty-${i}`}
-                className="aspect-square border-b border-r border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-900/30"
-              />
-            ))}
+            {gridDays.map((day) => {
+              const isPadding = paddingBeforeSet.has(day.date) || paddingAfterSet.has(day.date);
+              const hasSessions = day.studySessions.length > 0;
+              const totalActivities = day.studySessions.length + day.reviewSessions.length;
+              const intensity = totalActivities;
 
-            {calendarDays.map((day) => {
-              const dayNumber = parseInt(day.date.split('-')[2], 10);
-              const isToday = day.date === today;
-              const hasSessions = day.sessions.length > 0;
+              // Classe base da célula
+              const cellClass = twMerge(
+                'aspect-square border-b border-r border-gray-100 dark:border-gray-800',
+                'flex flex-col items-center justify-start p-1.5 gap-1',
+                'transition-colors relative',
+                // Dias de mês adjacente (padding): opacidade reduzida, não clicável
+                isPadding && 'opacity-40 bg-gray-50 dark:bg-gray-800/50 cursor-default',
+                // Dia clicável (mês atual com atividades)
+                !isPadding &&
+                  hasSessions &&
+                  'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50',
+                // Dia vazio do mês atual (sem atividades)
+                !isPadding && !hasSessions && 'cursor-default',
+                // Estados visuais (apenas para dias do mês atual com atividades)
+                !isPadding && hasSessions && day.allCompleted && 'bg-green-50 dark:bg-green-900/20',
+                !isPadding &&
+                  hasSessions &&
+                  day.anyCompleted &&
+                  !day.allCompleted &&
+                  'bg-amber-50 dark:bg-amber-900/20',
+                !isPadding &&
+                  hasSessions &&
+                  !day.anyCompleted &&
+                  'bg-brand-50 dark:bg-brand-900/10',
+                // Indicador de intensidade (heatmap)
+                !isPadding &&
+                  intensity >= 6 &&
+                  'shadow-sm ring-2 ring-brand-200 dark:ring-brand-800',
+                !isPadding &&
+                  intensity >= 3 &&
+                  intensity <= 5 &&
+                  'ring-1 ring-gray-300 dark:ring-gray-600',
+              );
 
               return (
                 <button
                   key={day.date}
                   onClick={() => handleDayClick(day)}
-                  disabled={!hasSessions}
-                  className={twMerge(
-                    'aspect-square border-b border-r border-gray-100 dark:border-gray-800',
-                    'flex flex-col items-center justify-start p-1.5 gap-1',
-                    'transition-colors relative',
-                    hasSessions && 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50',
-                    !hasSessions && 'cursor-default bg-gray-50/30 dark:bg-gray-900/30',
-                    day.allCompleted && hasSessions && 'bg-green-50 dark:bg-green-900/20',
-                    day.anyCompleted &&
-                      !day.allCompleted &&
-                      hasSessions &&
-                      'bg-amber-50 dark:bg-amber-900/20',
-                  )}
+                  onMouseEnter={() => setHoveredDay(day.date)}
+                  onMouseLeave={() => setHoveredDay(null)}
+                  disabled={isPadding || !day.hasActivities}
+                  className={cellClass}
+                  aria-label={`Dia ${day.dayNumber}${isPadding ? ' (mês adjacente)' : ''}`}
                 >
+                  {/* Número do dia */}
                   <span
                     className={twMerge(
                       'text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full',
-                      isToday && 'bg-brand-600 text-white dark:bg-brand-500',
-                      !isToday && 'text-gray-700 dark:text-gray-300',
+                      day.isToday &&
+                        'bg-brand-600 text-white dark:bg-brand-500 ring-2 ring-brand-500 ring-offset-1',
+                      !day.isToday && 'text-gray-700 dark:text-gray-300',
+                      isPadding && 'text-gray-400 dark:text-gray-600',
                     )}
                   >
-                    {dayNumber}
+                    {day.dayNumber}
                   </span>
 
-                  {/* Dots coloridos */}
+                  {/* Dots coloridos (estudos) */}
                   {hasSessions && (
                     <div className="flex flex-wrap gap-0.5 justify-center max-w-[80%]">
-                      {day.sessions.slice(0, 4).map((session, idx) => (
+                      {day.studySessions.slice(0, 4).map((session, idx) => (
                         <span
                           key={idx}
                           className="w-2 h-2 rounded-full flex-shrink-0"
                           style={{ backgroundColor: session.topicColor }}
                         />
                       ))}
-                      {day.sessions.length > 4 && (
+                      {day.studySessions.length > 4 && (
                         <span className="text-[10px] text-gray-500 dark:text-gray-400 leading-none">
-                          +{day.sessions.length - 4}
+                          +{day.studySessions.length - 4}
                         </span>
                       )}
                     </div>
                   )}
 
                   {/* Indicador de conclusão */}
-                  {day.allCompleted && hasSessions && (
+                  {!isPadding && day.allCompleted && hasSessions && (
                     <span className="text-[10px] text-green-600 dark:text-green-400">✓</span>
+                  )}
+
+                  {/* Tooltip no hover */}
+                  {hoveredDay === day.date && !isPadding && day.hasActivities && (
+                    <div
+                      className={twMerge(
+                        'absolute bottom-full left-1/2 -translate-x-1/2 mb-1 z-10',
+                        'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900',
+                        'text-xs rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg',
+                        'opacity-100 translate-y-0 transition-all duration-150',
+                        'pointer-events-none',
+                      )}
+                    >
+                      <p>
+                        📚 {day.studySessions.length} estudo
+                        {day.studySessions.length !== 1 ? 's' : ''}
+                        {day.reviewSessions.length > 0 && (
+                          <>
+                            {' '}
+                            | 📝 {day.reviewSessions.length} revisão
+                            {day.reviewSessions.length !== 1 ? 'ões' : ''}
+                          </>
+                        )}
+                      </p>
+                      <p>
+                        {day.studySessions.filter((s) => s.completed).length}/
+                        {day.studySessions.length} concluídos
+                      </p>
+                    </div>
                   )}
                 </button>
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* Legenda */}
+      {topics.length > 0 && !isEmptyMonth && (
+        <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 dark:text-gray-400 px-1">
+          <span className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded-full bg-green-100 dark:bg-green-900/40 border border-green-300" />{' '}
+            ✓ Concluído
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded-full bg-amber-100 dark:bg-amber-900/40 border border-amber-300" />{' '}
+            ◌ Parcial
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded-full bg-brand-50 dark:bg-brand-900/20 border border-brand-200" />{' '}
+            Pendente
+          </span>
         </div>
       )}
 
@@ -353,65 +410,114 @@ export function StudyCalendarPage() {
               </button>
             </div>
 
-            {/* Lista de sessões */}
+            {/* Conteúdo */}
             <div className="p-4 space-y-4">
-              {selectedDay.sessions.length === 0 && (
-                <p className="text-gray-500 dark:text-gray-400 text-center py-4">
-                  Nenhum estudo agendado para este dia.
-                </p>
-              )}
-              {selectedDay.sessions.map((session) => (
-                <div
-                  key={session.sessionId}
-                  className={twMerge(
-                    'flex items-center gap-3 p-3 rounded-lg border transition-colors',
-                    session.completed
-                      ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-                      : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700',
-                  )}
-                >
-                  {/* Indicador de cor do tema */}
-                  <div
-                    className="w-3 h-3 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: session.topicColor }}
-                  />
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {session.topicName}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {session.hoursPerDay}h por dia
-                    </p>
-                    {session.completed && session.completedAt && (
-                      <p className="text-xs text-green-600 dark:text-green-400 mt-0.5">
-                        Concluído em {formatDateTime(session.completedAt)}
-                      </p>
-                    )}
+              {/* Seção Estudos */}
+              {selectedDay.studySessions.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    📚 Estudos
+                  </h4>
+                  <div className="space-y-2">
+                    {selectedDay.studySessions.map((session) => (
+                      <div
+                        key={session.sessionId}
+                        className={twMerge(
+                          'flex items-center gap-3 p-3 rounded-lg border transition-colors',
+                          session.completed
+                            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                            : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700',
+                        )}
+                      >
+                        <div
+                          className="w-3 h-3 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: session.topicColor }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {session.topicName}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {session.hoursPerDay}h por dia
+                          </p>
+                          {session.completed && session.completedAt && (
+                            <p className="text-xs text-green-600 dark:text-green-400 mt-0.5">
+                              Concluído em {formatDateTime(session.completedAt)}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => toggleSession(session.sessionId)}
+                          className={twMerge(
+                            'relative inline-flex h-6 w-11 items-center rounded-full flex-shrink-0',
+                            'transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2',
+                            session.completed ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600',
+                          )}
+                          role="switch"
+                          aria-checked={session.completed}
+                          aria-label={`Marcar ${session.topicName} como ${session.completed ? 'não concluído' : 'concluído'}`}
+                        >
+                          <span
+                            className={twMerge(
+                              'inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform',
+                              session.completed ? 'translate-x-6' : 'translate-x-1',
+                            )}
+                          />
+                        </button>
+                      </div>
+                    ))}
                   </div>
-
-                  {/* Toggle Switch */}
-                  <button
-                    onClick={() => toggleSession(session.sessionId)}
-                    className={twMerge(
-                      'relative inline-flex h-6 w-11 items-center rounded-full flex-shrink-0',
-                      'transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2',
-                      session.completed ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600',
-                    )}
-                    role="switch"
-                    aria-checked={session.completed}
-                    aria-label={`Marcar ${session.topicName} como ${session.completed ? 'não concluído' : 'concluído'}`}
-                  >
-                    <span
-                      className={twMerge(
-                        'inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform',
-                        session.completed ? 'translate-x-6' : 'translate-x-1',
-                      )}
-                    />
-                  </button>
                 </div>
-              ))}
+              )}
+
+              {/* Seção Revisões (placeholder - Sprint 14) */}
+              {selectedDay.reviewSessions.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    📝 Revisões
+                  </h4>
+                  <div className="space-y-2">
+                    {selectedDay.reviewSessions.map((review) => (
+                      <div
+                        key={`${review.reviewId}-${review.date}`}
+                        className={twMerge(
+                          'flex items-center gap-3 p-3 rounded-lg border transition-colors',
+                          review.completed
+                            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                            : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700',
+                        )}
+                      >
+                        <div
+                          className="w-3 h-3 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: review.reviewColor }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {review.reviewName}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {review.reviewNumber}ª revisão
+                          </p>
+                          {review.questionnaire && (
+                            <p className="text-xs text-green-600 dark:text-green-400 mt-0.5">
+                              {review.questionnaire.correctAnswers}/
+                              {review.questionnaire.totalQuestions} acertos (
+                              {review.questionnaire.accuracy}%)
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedDay.studySessions.length === 0 &&
+                selectedDay.reviewSessions.length === 0 && (
+                  <p className="text-gray-500 dark:text-gray-400 text-center py-4">
+                    Nenhuma atividade para este dia.
+                  </p>
+                )}
             </div>
           </div>
         </div>

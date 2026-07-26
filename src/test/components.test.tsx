@@ -61,6 +61,7 @@ vi.mock('../../presentation/hooks/useCalendarSessions', () => ({
     filterByTopics: vi.fn(),
     toggleSession: vi.fn(),
     loadMonth: vi.fn(),
+    isEmptyMonth: true,
   }),
 }));
 

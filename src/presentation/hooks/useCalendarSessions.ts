@@ -1,11 +1,11 @@
-import { useState, useCallback } from 'react';
-import type { CalendarDay } from '../../core/entities/ProgressData';
+import { useState, useCallback, useMemo } from 'react';
+import type { CalendarDayFull } from '../../core/entities/ProgressData';
 import type { StudyTopic } from '../../core/entities/StudyTopic';
 import { container } from '../../di/container';
 import { handleError } from '../../shared/errorHandler';
 
 interface UseCalendarSessionsReturn {
-  calendarDays: CalendarDay[];
+  calendarDays: CalendarDayFull[];
   topics: StudyTopic[];
   loading: boolean;
   error: string | null;
@@ -16,10 +16,12 @@ interface UseCalendarSessionsReturn {
   filterByTopics: (topicIds: string[]) => void;
   toggleSession: (sessionId: string) => Promise<void>;
   loadMonth: (year: number, month: number) => Promise<void>;
+  /** True se nenhum dia do mês tem atividades (estudos + revisões) */
+  isEmptyMonth: boolean;
 }
 
 export function useCalendarSessions(): UseCalendarSessionsReturn {
-  const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
+  const [calendarDays, setCalendarDays] = useState<CalendarDayFull[]>([]);
   const [topics, setTopics] = useState<StudyTopic[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,7 +98,7 @@ export function useCalendarSessions(): UseCalendarSessionsReturn {
       setCalendarDays((prev) =>
         prev.map((day) => ({
           ...day,
-          sessions: day.sessions.map((s) => {
+          studySessions: day.studySessions.map((s) => {
             if (s.sessionId !== sessionId) return s;
             const toggled = !s.completed;
             return {
@@ -105,10 +107,12 @@ export function useCalendarSessions(): UseCalendarSessionsReturn {
               completedAt: toggled ? new Date() : undefined,
             };
           }),
-          allCompleted: day.sessions.every(
-            (s) => s.completed || (s.sessionId === sessionId ? !s.completed : false),
-          ),
-          anyCompleted: day.sessions.some((s) => s.completed || s.sessionId === sessionId),
+          allCompleted:
+            day.studySessions.length > 0 &&
+            day.studySessions.every(
+              (s) => s.completed || (s.sessionId === sessionId ? !s.completed : false),
+            ),
+          anyCompleted: day.studySessions.some((s) => s.completed || s.sessionId === sessionId),
         })),
       );
 
@@ -127,6 +131,10 @@ export function useCalendarSessions(): UseCalendarSessionsReturn {
     [calendarDays],
   );
 
+  const isEmptyMonth = useMemo(() => {
+    return calendarDays.length > 0 && calendarDays.every((d) => !d.hasActivities);
+  }, [calendarDays]);
+
   return {
     calendarDays,
     topics,
@@ -139,5 +147,6 @@ export function useCalendarSessions(): UseCalendarSessionsReturn {
     filterByTopics,
     toggleSession,
     loadMonth,
+    isEmptyMonth,
   };
 }
