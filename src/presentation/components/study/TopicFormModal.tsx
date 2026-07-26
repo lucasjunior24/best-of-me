@@ -103,6 +103,7 @@ export function TopicFormModal({
     setSubmitting(true);
 
     if (isEditing && editingTopic) {
+      console.log('Updating topic:');
       await onUpdate(editingTopic.id, {
         name: name.trim(),
         color,

@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  setDoc,
   updateDoc,
   getDocs,
   getDoc,
@@ -88,10 +89,8 @@ export class FirebaseStudyRepository implements IStudyRepository {
       createdAt: now,
       updatedAt: now,
     };
-
     const docRef = doc(this.topicsCollection(topic.userId), id);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await updateDoc(docRef as any, docData);
+    await setDoc(docRef, docData);
 
     this._lastUserId = topic.userId;
 

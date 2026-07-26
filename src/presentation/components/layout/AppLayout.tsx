@@ -1,5 +1,6 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { ThemeToggle } from '../ui/ThemeToggle';
 
 const routeLabels: Record<string, string> = {
   '/': 'Início',
@@ -42,6 +43,7 @@ export function AppLayout() {
 
           {/* User menu */}
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             {user && (
               <>
                 {/* Avatar */}
