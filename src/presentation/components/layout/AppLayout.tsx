@@ -1,4 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
+import { twMerge } from 'tailwind-merge';
 import { useAuth } from '../../hooks/useAuth';
 import { ThemeToggle } from '../ui/ThemeToggle';
 
@@ -7,7 +8,18 @@ const routeLabels: Record<string, string> = {
   '/study': 'Dashboard',
   '/study/topics': 'Temas',
   '/study/calendar': 'Calendário',
+  '/review': 'Revisões',
+  '/review/stats': 'Métricas',
 };
+
+const NAV_ITEMS = [
+  {
+    label: '📚 Estudos',
+    path: '/study',
+    activePaths: ['/study', '/study/topics', '/study/calendar'],
+  },
+  { label: '📝 Revisões', path: '/review', activePaths: ['/review', '/review/stats'] },
+] as const;
 
 export function AppLayout() {
   const { user, signOut } = useAuth();
@@ -28,7 +40,7 @@ export function AppLayout() {
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/80 backdrop-blur-md dark:border-gray-800 dark:bg-gray-900/80">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
-          {/* Breadcrumb / Logo */}
+          {/* Breadcrumb / Logo + Nav */}
           <div className="flex items-center gap-3 min-w-0">
             <Link to="/" className="flex items-center gap-2">
               <span className="text-lg font-bold text-brand-600 dark:text-brand-400 truncate">
@@ -39,6 +51,28 @@ export function AppLayout() {
             <span className="hidden text-sm text-gray-500 dark:text-gray-400 sm:block truncate">
               {currentLabel}
             </span>
+            {/* Nav links */}
+            <nav className="hidden sm:flex items-center gap-1 ml-4">
+              {NAV_ITEMS.map((item) => {
+                const isActive = item.activePaths.some(
+                  (p) => location.pathname === p || location.pathname.startsWith(p + '/'),
+                );
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={twMerge(
+                      'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                      isActive
+                        ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300'
+                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800',
+                    )}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
           </div>
 
           {/* User menu */}

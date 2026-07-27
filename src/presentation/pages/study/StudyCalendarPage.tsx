@@ -39,7 +39,6 @@ export function StudyCalendarPage() {
     moduleFilter,
     toggleSession,
     loadMonth,
-    isEmptyMonth,
     setModuleFilter,
   } = useCalendarSessions();
 
@@ -340,19 +339,35 @@ export function StudyCalendarPage() {
                     {day.dayNumber}
                   </span>
 
-                  {/* Dots coloridos (estudos) */}
-                  {hasSessions && (
+                  {/* Dots coloridos (estudos + revisões) */}
+                  {day.hasActivities && (
                     <div className="flex flex-wrap gap-0.5 justify-center max-w-[80%]">
-                      {day.studySessions.slice(0, 4).map((session, idx) => (
+                      {/* Dots de estudo (círculo preenchido) */}
+                      {day.studySessions.slice(0, 3).map((session, idx) => (
                         <span
-                          key={idx}
+                          key={`study-${idx}`}
                           className="w-2 h-2 rounded-full flex-shrink-0"
                           style={{ backgroundColor: session.topicColor }}
+                          title={`Estudo: ${session.topicName}`}
                         />
                       ))}
-                      {day.studySessions.length > 4 && (
+                      {/* Dots de revisão (diamante/outline) */}
+                      {day.reviewSessions.slice(0, 3).map((review, idx) => (
+                        <span
+                          key={`review-${idx}`}
+                          className="w-2 h-2 flex-shrink-0 rotate-45 rounded-sm border border-current"
+                          style={{
+                            backgroundColor: review.completed ? review.reviewColor : 'transparent',
+                            color: review.reviewColor,
+                            borderColor: review.reviewColor,
+                          }}
+                          title={`Revisão: ${review.reviewName}`}
+                        />
+                      ))}
+                      {/* Indicador de "+N" se houver mais atividades */}
+                      {day.studySessions.length + day.reviewSessions.length > 6 && (
                         <span className="text-[10px] text-gray-500 dark:text-gray-400 leading-none">
-                          +{day.studySessions.length - 4}
+                          +{day.studySessions.length + day.reviewSessions.length - 6}
                         </span>
                       )}
                     </div>
@@ -398,19 +413,28 @@ export function StudyCalendarPage() {
         </div>
       )}
 
-      {/* Legenda */}
-      {topics.length > 0 && !isEmptyMonth && (
-        <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 dark:text-gray-400 px-1">
-          <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded-full bg-green-100 dark:bg-green-900/40 border border-green-300" />{' '}
+      {/* Legenda (T16.2) */}
+      {topics.length > 0 && (
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-gray-500 dark:text-gray-400 px-1">
+          {/* Tipos de atividade */}
+          <span className="flex items-center gap-1.5 font-medium text-gray-600 dark:text-gray-400">
+            ⬤ Estudo
+          </span>
+          <span className="flex items-center gap-1.5 font-medium text-gray-600 dark:text-gray-400">
+            <span className="w-2.5 h-2.5 flex-shrink-0 rotate-45 rounded-sm border border-current opacity-70" />
+            Revisão
+          </span>
+          {/* Estados */}
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full bg-green-100 dark:bg-green-900/40 border border-green-300" />
             ✓ Concluído
           </span>
-          <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded-full bg-amber-100 dark:bg-amber-900/40 border border-amber-300" />{' '}
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full bg-amber-100 dark:bg-amber-900/40 border border-amber-300" />
             ◌ Parcial
           </span>
-          <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded-full bg-brand-50 dark:bg-brand-900/20 border border-brand-200" />{' '}
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full bg-brand-50 dark:bg-brand-900/20 border border-brand-200" />
             Pendente
           </span>
         </div>

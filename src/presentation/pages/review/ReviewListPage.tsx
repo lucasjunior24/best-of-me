@@ -521,7 +521,12 @@ export function ReviewListPage() {
             Gerencie seus ciclos de revisão espaçada
           </p>
         </div>
-        <Button onClick={handleOpenCreate}>Nova Revisão</Button>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => navigate('/review/stats')}>
+            📊 Métricas
+          </Button>
+          <Button onClick={handleOpenCreate}>Nova Revisão</Button>
+        </div>
       </div>
 
       {/* Loading State */}
