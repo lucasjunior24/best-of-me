@@ -4,6 +4,7 @@ import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { ColorPicker } from '../ui/ColorPicker';
 import { DatePicker } from '../ui/DatePicker';
+import { TimeInput } from '../ui/TimeInput';
 import type {
   StudyTopic,
   CreateStudyTopicInput,
@@ -81,8 +82,8 @@ export function TopicFormModal({
       errs.totalDays = 'Deve ser pelo menos 1.';
     }
 
-    if (!hoursPerDay || hoursPerDay < 0.5) {
-      errs.hoursPerDay = 'Deve ser pelo menos 0.5.';
+    if (!hoursPerDay || hoursPerDay < 0.25) {
+      errs.hoursPerDay = 'Deve ser pelo menos 15 minutos (00:15).';
     }
 
     if (!isEditing && scheduledDates.length === 0) {
@@ -197,14 +198,11 @@ export function TopicFormModal({
             }}
             error={errors.totalDays}
           />
-          <Input
+          <TimeInput
             label="Horas por Dia"
-            type="number"
-            min={0.5}
-            step={0.5}
             value={hoursPerDay}
-            onChange={(e) => {
-              setHoursPerDay(Number(e.target.value));
+            onChange={(value) => {
+              setHoursPerDay(value);
               if (errors.hoursPerDay) setErrors((prev) => ({ ...prev, hoursPerDay: undefined }));
             }}
             error={errors.hoursPerDay}

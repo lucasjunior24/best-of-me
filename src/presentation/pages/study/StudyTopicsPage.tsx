@@ -5,6 +5,7 @@ import { useStudyTopics } from '../../hooks/useStudyTopics';
 import { Button } from '../../components/ui/Button';
 import { ProgressBar } from '../../components/ui/ProgressBar';
 import { TopicFormModal } from '../../components/study/TopicFormModal';
+import { formatHours } from '../../components/ui/TimeInput';
 import { ConfirmDeleteModal } from '../../components/study/ConfirmDeleteModal';
 import { container } from '../../../di/container';
 import type { StudyTopic } from '../../../core/entities/StudyTopic';
@@ -204,6 +205,16 @@ export function StudyTopicsPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Header */}
+
+      <div className="flex items-center gap-2 mb-1">
+        <button
+          type="button"
+          onClick={() => navigate('/study')}
+          className="text-sm text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
+        >
+          ← Voltar para visão geral
+        </button>
+      </div>
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Temas de Estudo</h1>
@@ -287,7 +298,7 @@ export function StudyTopicsPage() {
                           d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
                         />
                       </svg>
-                      {topic.hoursPerDay}h/dia
+                      {formatHours(topic.hoursPerDay)}/dia
                     </span>
                   </div>
 
@@ -295,7 +306,8 @@ export function StudyTopicsPage() {
                   <div className="mt-4 space-y-2">
                     <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
                       <span>
-                        {totalHoursPlanned}h totais · {completedHours}h concluídas
+                        {formatHours(totalHoursPlanned)} totais · {formatHours(completedHours)}{' '}
+                        concluídas
                       </span>
                       <span className="font-medium text-gray-700 dark:text-gray-300">
                         {completedDays}/{totalDays} dias

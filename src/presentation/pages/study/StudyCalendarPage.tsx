@@ -5,6 +5,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useCalendarSessions } from '../../hooks/useCalendarSessions';
 import { useCalendarGrid } from '../../hooks/useCalendarGrid';
 import { Button } from '../../components/ui/Button';
+import { formatHours } from '../../components/ui/TimeInput';
 import type { CalendarDayFull } from '../../../core/entities/ProgressData';
 
 const MONTHS = [
@@ -515,7 +516,7 @@ export function StudyCalendarPage() {
                             {session.topicName}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {session.hoursPerDay}h por dia
+                            {formatHours(session.hoursPerDay)}/dia
                           </p>
                           {session.completed && session.completedAt && (
                             <p className="text-xs text-green-600 dark:text-green-400 mt-0.5">
