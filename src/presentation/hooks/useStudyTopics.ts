@@ -4,6 +4,7 @@ import type {
   CreateStudyTopicInput,
   UpdateStudyTopicInput,
 } from '../../core/entities/StudyTopic';
+import type { TopicProgress } from '../../core/entities/ProgressData';
 import { container } from '../../di/container';
 import { handleError } from '../../shared/errorHandler';
 
@@ -11,6 +12,7 @@ interface UseStudyTopicsReturn {
   topics: StudyTopic[];
   loading: boolean;
   error: string | null;
+  topicProgressMap: Map<string, TopicProgress>;
   loadTopics: (userId: string) => Promise<void>;
   createTopic: (userId: string, input: CreateStudyTopicInput) => Promise<StudyTopic | null>;
   updateTopic: (topicId: string, data: UpdateStudyTopicInput) => Promise<StudyTopic | null>;
@@ -21,14 +23,27 @@ export function useStudyTopics(): UseStudyTopicsReturn {
   const [topics, setTopics] = useState<StudyTopic[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [topicProgressMap, setTopicProgressMap] = useState<Map<string, TopicProgress>>(new Map());
   const loadedRef = useRef(false);
 
   const loadTopics = useCallback(async (userId: string) => {
     setLoading(true);
     setError(null);
     try {
-      const result = await container.useCases.getStudyTopics.execute(userId);
+      const [result, progressData] = await Promise.all([
+        container.useCases.getStudyTopics.execute(userId),
+        container.useCases.getStudyProgress.execute(userId),
+      ]);
+
       setTopics(result);
+
+      // Build progress map
+      const map = new Map<string, TopicProgress>();
+      for (const tp of progressData.byTopic) {
+        map.set(tp.topicId, tp);
+      }
+      setTopicProgressMap(map);
+
       loadedRef.current = true;
     } catch (err) {
       const message = handleError(err);
@@ -92,6 +107,7 @@ export function useStudyTopics(): UseStudyTopicsReturn {
     topics,
     loading,
     error,
+    topicProgressMap,
     loadTopics,
     createTopic,
     updateTopic,

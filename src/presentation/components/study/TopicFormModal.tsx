@@ -89,6 +89,10 @@ export function TopicFormModal({
       errs.scheduledDates = 'Selecione ao menos uma data.';
     }
 
+    if (!isEditing && scheduledDates.length !== 0 && scheduledDates.length !== totalDays) {
+      errs.scheduledDates = `Selecione exatamente ${totalDays} ${totalDays === 1 ? 'dia' : 'dias'} (${scheduledDates.length} selecionado${scheduledDates.length === 1 ? '' : 's'}).`;
+    }
+
     return errs;
   }, [name, color, totalDays, hoursPerDay, scheduledDates, isEditing]);
 
@@ -222,6 +226,7 @@ export function TopicFormModal({
                     setErrors((prev) => ({ ...prev, scheduledDates: undefined }));
                 }}
                 highlightColor={color}
+                maxDates={totalDays}
               />
             </div>
             {errors.scheduledDates && (

@@ -19,6 +19,7 @@ interface DatePickerProps {
   selectedDates: string[];
   onChange: (dates: string[]) => void;
   highlightColor?: string;
+  maxDates?: number;
   className?: string;
 }
 
@@ -26,6 +27,7 @@ export function DatePicker({
   selectedDates,
   onChange,
   highlightColor = '#3b82f6',
+  maxDates,
   className,
 }: DatePickerProps) {
   const [currentMonth, setCurrentMonth] = useState(() => startOfMonth(new Date()));
@@ -54,6 +56,26 @@ export function DatePicker({
       }
     },
     [selectedDates, selectedSet, onChange],
+  );
+
+  const isMaxReached = maxDates !== undefined && selectedDates.length >= maxDates;
+
+  const handleDayClick = useCallback(
+    (dateStr: string, isCurrentMonth: boolean) => {
+      if (!isCurrentMonth) return;
+
+      // Se já está selecionado, permite desselecionar
+      if (selectedSet.has(dateStr)) {
+        toggleDate(dateStr);
+        return;
+      }
+
+      // Se atingiu o limite, bloqueia nova seleção
+      if (isMaxReached) return;
+
+      toggleDate(dateStr);
+    },
+    [isMaxReached, selectedSet, toggleDate],
   );
 
   const weekDays = useMemo(() => {
@@ -134,8 +156,8 @@ export function DatePicker({
             <button
               key={dateStr}
               type="button"
-              onClick={() => isCurrentMonth && toggleDate(dateStr)}
-              disabled={!isCurrentMonth}
+              onClick={() => handleDayClick(dateStr, isCurrentMonth)}
+              disabled={!isCurrentMonth || (!selectedSet.has(dateStr) && isMaxReached)}
               className={twMerge(
                 'flex h-9 w-9 items-center justify-center rounded-lg text-sm transition-all',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500',
@@ -161,8 +183,9 @@ export function DatePicker({
 
       {/* Selection count */}
       <p className="text-xs text-gray-500 dark:text-gray-400">
-        {selectedDates.length}{' '}
-        {selectedDates.length === 1 ? 'dia selecionado' : 'dias selecionados'}
+        {maxDates !== undefined
+          ? `${selectedDates.length} / ${maxDates} ${maxDates === 1 ? 'dia selecionado' : 'dias selecionados'}`
+          : `${selectedDates.length} ${selectedDates.length === 1 ? 'dia selecionado' : 'dias selecionados'}`}
       </p>
     </div>
   );

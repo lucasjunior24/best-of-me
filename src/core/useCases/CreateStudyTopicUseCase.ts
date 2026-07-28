@@ -58,6 +58,12 @@ export class CreateStudyTopicUseCase {
       throw new ValidationError('É necessário selecionar ao menos uma data de estudo.');
     }
 
+    if (input.scheduledDates.length !== input.totalDays) {
+      throw new ValidationError(
+        `O número de datas selecionadas (${input.scheduledDates.length}) deve ser igual ao total de dias (${input.totalDays}).`,
+      );
+    }
+
     // Validar formato das datas
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     for (const date of input.scheduledDates) {
