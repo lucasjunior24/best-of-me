@@ -132,10 +132,12 @@ export function useCalendarSessions(): UseCalendarSessionsReturn {
           }),
           allCompleted:
             day.studySessions.length > 0 &&
-            day.studySessions.every(
-              (s) => s.completed || (s.sessionId === sessionId ? !s.completed : false),
+            day.studySessions.every((s) =>
+              s.sessionId === sessionId ? !s.completed : s.completed,
             ),
-          anyCompleted: day.studySessions.some((s) => s.completed || s.sessionId === sessionId),
+          anyCompleted: day.studySessions.some((s) =>
+            s.sessionId === sessionId ? !s.completed : s.completed,
+          ),
         })),
       );
 

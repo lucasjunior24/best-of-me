@@ -62,6 +62,17 @@ export function StudyCalendarPage() {
     loadData();
   }, [loadData]);
 
+  // T19.2 — Mantém selectedDay sincronizado com calendarDays após toggle otimista
+  useEffect(() => {
+    if (selectedDay) {
+      const updated = calendarDays.find((d) => d.date === selectedDay.date);
+      if (updated) {
+        setSelectedDay(updated);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [calendarDays]);
+
   const handleDayClick = (day: CalendarDayFull) => {
     if (!day.isCurrentMonth) return;
     if (day.hasActivities) {
