@@ -3,6 +3,7 @@ import {
   signOut as firebaseSignOut,
   getAuth,
   onAuthStateChanged as firebaseOnAuthStateChanged,
+  fetchSignInMethodsForEmail,
 } from 'firebase/auth';
 import { auth, googleProvider } from './config';
 import type { IAuthRepository } from '../../core/ports/IAuthRepository';
@@ -48,5 +49,33 @@ export class FirebaseAuthRepository implements IAuthRepository {
       }
     });
     return unsubscribe;
+  }
+
+  /**
+   * Verifica se um e-mail está registrado no Firebase Auth.
+   * Como o client SDK não expõe os dados do usuário por e-mail,
+   * usamos fetchSignInMethodsForEmail para verificar se o e-mail
+   * possui provedores de login (ou seja, está cadastrado).
+   * Retorna um User parcial (sem id real, apenas e-mail) se existir,
+   * ou null caso contrário.
+   *
+   * TODO Sprint 22: Substituir por Cloud Function que busca UID real.
+   */
+  async getUserByEmail(email: string): Promise<User | null> {
+    try {
+      const methods = await fetchSignInMethodsForEmail(auth, email);
+      if (methods.length > 0) {
+        // Não temos o UID pelo client SDK, mas sabemos que o e-mail existe.
+        // O UID será resolvido corretamente na Sprint 22 via Cloud Function.
+        return {
+          id: '',
+          email,
+          displayName: email,
+        };
+      }
+      return null;
+    } catch {
+      return null;
+    }
   }
 }

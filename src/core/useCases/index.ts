@@ -12,3 +12,8 @@ export { DeleteReviewUseCase } from './DeleteReviewUseCase';
 export { CreateOrUpdateQuestionnaireUseCase } from './CreateOrUpdateQuestionnaireUseCase';
 export { GetReviewCalendarUseCase } from './GetReviewCalendarUseCase';
 export { GetReviewStatsUseCase } from './GetReviewStatsUseCase';
+// Sharing use cases
+export { ShareTopicUseCase } from './ShareTopicUseCase';
+export { GetPendingInvitationsUseCase } from './GetPendingInvitationsUseCase';
+export type { PendingInvitation } from './GetPendingInvitationsUseCase';
+export { AcceptInvitationUseCase } from './AcceptInvitationUseCase';

@@ -7,6 +7,10 @@ export interface StudySession {
   completedAt?: Date;
   duration?: number;
   createdAt: Date;
+  /** ID do usuário que criou a session (útil em temas compartilhados) */
+  createdBy?: string;
+  /** ID do usuário que concluiu a session */
+  completedBy?: string;
 }
 
 export type StudySessionWithTopic = StudySession & {

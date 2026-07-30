@@ -7,6 +7,12 @@ export interface StudyTopic {
   hoursPerDay: number;
   createdAt: Date;
   updatedAt: Date;
+  /** IDs dos usuários com quem o tema foi compartilhado */
+  sharedWith?: string[];
+  /** Indica se o tema foi recebido via compartilhamento */
+  isShared?: boolean;
+  /** ID do usuário que criou o tema originalmente */
+  ownerUserId?: string;
 }
 
 export type CreateStudyTopicInput = {
@@ -17,4 +23,8 @@ export type CreateStudyTopicInput = {
   scheduledDates: string[];
 };
 
-export type UpdateStudyTopicInput = Partial<Omit<CreateStudyTopicInput, 'scheduledDates'>>;
+export type UpdateStudyTopicInput = Partial<
+  Omit<CreateStudyTopicInput, 'scheduledDates'> & {
+    sharedWith?: string[];
+  }
+>;

@@ -7,6 +7,7 @@
   <img src="https://img.shields.io/badge/Firebase-10.12-%23FFCA28?logo=firebase" alt="Firebase" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-3.4-%2306B6D4?logo=tailwindcss" alt="Tailwind CSS" />
   <img src="https://img.shields.io/badge/Vite-5.3-%23646CFF?logo=vite" alt="Vite" />
+  <img src="https://img.shields.io/badge/Sprints-173%2F187-%2346C93A" alt="Progress" />
 </p>
 
 <p align="center">
@@ -17,16 +18,21 @@
 
 ## 📋 Sobre
 
-**Best of Me** é um MVP (Minimum Viable Product) para gerenciamento de estudos pessoais. O módulo de **Estudos** permite criar temas de estudo, agendar sessões em um calendário, marcar conclusão diária e acompanhar o progresso com métricas visuais.
+**Best of Me** é um MVP (Minimum Viable Product) para gerenciamento de estudos pessoais com Clean Architecture. O módulo de **Estudos** permite criar temas de estudo, agendar sessões em um calendário, marcar conclusão diária, revisar conteúdos com spaced repetition e acompanhar o progresso com métricas visuais.
 
 Recursos principais:
 - 🔐 Autenticação com Google (Firebase Auth)
 - 📚 CRUD de temas de estudo com seleção de datas em calendário
-- 📅 Calendário mensal com dots coloridos e indicadores de conclusão
-- 📊 Dashboard de progresso com filtros por tema e gráficos
+- 📅 Calendário mensal unificado (estudos + revisões) com dots coloridos e indicadores
+- 📊 Dashboard de progresso com filtros por tema e métricas
+- 🔁 Módulo de Revisões com questionários de autoavaliação (good/easy/again) e spaced repetition
+- 📈 Métricas de revisões: taxa de acerto, distribuição, calendário
+- 👥 **Compartilhamento de Temas** (core implementado — UI/Firebase em andamento)
+- 🕐 Input de horas no formato HH:MM
 - 🌗 **Dark Mode** com persistência híbrida (localStorage + Firestore)
 - 🔄 Atualizações otimistas (toggle de conclusão)
 - 📱 Responsivo (mobile-first com Tailwind)
+- ♿ Acessibilidade com roles ARIA e navegação por teclado
 
 ---
 
@@ -41,7 +47,7 @@ Recursos principais:
 ### 1. Clone o repositório
 
 ```bash
-git clone https://github.com/seu-usuario/best-of-me.git
+git clone https://github.com/lucasjunior24/best-of-me.git
 cd best-of-me
 ```
 
@@ -80,69 +86,89 @@ A aplicação estará disponível em `http://localhost:3000`.
 ```
 src/
 ├── adapters/
-│   ├── firebase/              # Implementações Firebase (Auth + Firestore)
+│   ├── firebase/                  # Implementações Firebase
 │   │   ├── config.ts
 │   │   ├── FirebaseAuthRepository.ts
-│   │   └── FirebaseStudyRepository.ts
-│   └── toast/                 # Serviço de toasts (react-hot-toast)
+│   │   ├── FirebaseStudyRepository.ts
+│   │   └── FirebaseReviewRepository.ts
+│   └── toast/                     # Serviço de toasts (react-hot-toast)
 │       └── HotToastService.ts
 │
 ├── core/
-│   ├── entities/              # Entidades do domínio
+│   ├── entities/                  # Entidades do domínio
+│   │   ├── User.ts
 │   │   ├── StudyTopic.ts
 │   │   ├── StudySession.ts
 │   │   ├── ProgressData.ts
-│   │   └── User.ts
-│   ├── ports/                 # Interfaces (contratos)
+│   │   ├── Review.ts
+│   │   ├── ReviewQuestionnaire.ts
+│   │   └── SharedTopic.ts         # 🆕 Sprint 21
+│   ├── ports/                     # Interfaces (contratos)
 │   │   ├── IAuthRepository.ts
 │   │   ├── IStudyRepository.ts
+│   │   ├── IReviewRepository.ts
+│   │   ├── ISharingRepository.ts  # 🆕 Sprint 21
 │   │   └── IToastService.ts
-│   └── useCases/              # Casos de uso (Clean Architecture)
-│       ├── CreateStudyTopicUseCase.ts
-│       ├── UpdateStudyTopicUseCase.ts
-│       ├── DeleteStudyTopicUseCase.ts
-│       ├── GetStudyTopicsUseCase.ts
-│       ├── ScheduleStudyDaysUseCase.ts
-│       ├── ToggleSessionCompletionUseCase.ts
-│       ├── GetCalendarSessionsUseCase.ts
-│       └── GetStudyProgressUseCase.ts
+│   └── useCases/                  # Casos de uso (Clean Architecture)
+│       ├── Study/
+│       │   ├── CreateStudyTopicUseCase.ts
+│       │   ├── UpdateStudyTopicUseCase.ts
+│       │   ├── DeleteStudyTopicUseCase.ts
+│       │   ├── GetStudyTopicsUseCase.ts
+│       │   ├── ScheduleStudyDaysUseCase.ts
+│       │   ├── ToggleSessionCompletionUseCase.ts
+│       │   ├── GetCalendarSessionsUseCase.ts
+│       │   └── GetStudyProgressUseCase.ts
+│       ├── Review/
+│       │   ├── CreateReviewUseCase.ts
+│       │   ├── UpdateReviewUseCase.ts
+│       │   ├── DeleteReviewUseCase.ts
+│       │   ├── CreateOrUpdateQuestionnaireUseCase.ts
+│       │   ├── GetReviewCalendarUseCase.ts
+│       │   └── GetReviewStatsUseCase.ts
+│       └── Sharing/               # 🆕 Sprint 21
+│           ├── ShareTopicUseCase.ts
+│           ├── GetPendingInvitationsUseCase.ts
+│           └── AcceptInvitationUseCase.ts
 │
 ├── di/
-│   └── container.ts           # Dependency Injection container
+│   └── container.ts               # Dependency Injection container
 │
 ├── presentation/
 │   ├── components/
-│   │   ├── layout/            # AppLayout, ProtectedRoute
-│   │   ├── study/             # TopicFormModal, ConfirmDeleteModal
-│   │   └── ui/                # Button, Input, Modal, Spinner, ColorPicker,
-│   │                          # DatePicker, ProgressBar, ThemeToggle
+│   │   ├── layout/                # AppLayout, ProtectedRoute
+│   │   ├── review/                # Componentes de revisão
+│   │   ├── study/                 # TopicFormModal, ConfirmDeleteModal
+│   │   └── ui/                    # Button, Input, Modal, Spinner, ColorPicker,
+│   │                              # DatePicker, ProgressBar, ThemeToggle, TimeInput
 │   ├── context/
-│   │   ├── AuthContext.tsx     # Contexto de autenticação
-│   │   └── ThemeContext.tsx    # Contexto de tema (Dark Mode)
+│   │   ├── AuthContext.tsx         # Contexto de autenticação
+│   │   └── ThemeContext.tsx        # Contexto de tema (Dark Mode)
 │   ├── hooks/
 │   │   ├── useAuth.ts
 │   │   ├── useTheme.ts
 │   │   ├── useStudyTopics.ts
 │   │   ├── useStudyProgress.ts
-│   │   └── useCalendarSessions.ts
+│   │   ├── useCalendarSessions.ts
+│   │   └── useReviews.ts
 │   └── pages/
-│       ├── LoginPage.tsx        # Página de login
-│       ├── HomePage.tsx         # Home com cards de módulos
+│       ├── LoginPage.tsx
+│       ├── HomePage.tsx
 │       └── study/
-│           ├── StudyOverviewPage.tsx   # Dashboard de progresso
-│           ├── StudyTopicsPage.tsx     # CRUD de temas
-│           └── StudyCalendarPage.tsx   # Calendário mensal
+│           ├── StudyOverviewPage.tsx
+│           ├── StudyTopicsPage.tsx
+│           └── StudyCalendarPage.tsx
 │
-├── shared/                    # Utilitários compartilhados
+├── shared/                        # Utilitários compartilhados
 │   ├── errorHandler.ts
 │   ├── dateUtils.ts
 │   └── types.ts
 │
-└── test/                      # Testes
+└── test/                          # Testes
     ├── setup.ts
-    ├── useCases.test.ts       # Testes unitários dos Use Cases
-    ├── components.test.tsx    # Testes de componentes UI
-    └── integration.test.ts    # Testes de integração
+    ├── useCases.test.ts           # Testes unitários dos Use Cases (11)
+    ├── components.test.tsx        # Testes de componentes UI (14)
+    └── integration.test.ts        # Testes de integração (9)
 ```
 
 ---
@@ -160,7 +186,7 @@ npx vitest
 npx vitest --coverage
 ```
 
-**Suíte de testes:** 25 testes cobrindo:
+**Suíte de testes:** 34 testes passando:
 - ✅ 6 Use Cases (criação, edição, exclusão, toggle, progresso, calendário)
 - ✅ 4 Componentes UI (Button, Spinner, ProgressBar, Modal)
 - ✅ 4 Fluxos de integração (criar→calendário, marcar→progresso, filtrar, dark mode)
@@ -203,25 +229,56 @@ O projeto segue os princípios da **Clean Architecture**:
 
 ## 📖 Documentação Complementar
 
-- [MVP_PLAN.md](./MVP_PLAN.md) — Plano completo do MVP
-- [SPRINTS.md](./.rulescline/SPRINTS.md) — Detalhamento de todas as sprints (com progresso)
+- [.rulescline/SPRINTS.md](./.rulescline/SPRINTS.md) — Detalhamento de todas as 23 sprints com progresso
+- [.rulescline/SPRINT_NEXT.md](./.rulescline/SPRINT_NEXT.md) — Detalhamento das Sprints 11-16 (calendário real + revisões)
 
 ---
 
 ## 📊 Status do Projeto
 
-| Sprint | Status |
-|---|---|
-| Sprint 1 — Setup | ✅ Concluída |
-| Sprint 2 — Auth | ✅ Concluída |
-| Sprint 3 — Core | ✅ Concluída |
-| Sprint 4 — Adapter Firebase | ✅ Concluída |
-| Sprint 5 — UI Básica | ✅ Concluída |
-| Sprint 6 — CRUD Temas | ✅ Concluída |
-| Sprint 7 — Calendário | ✅ Concluída |
-| Sprint 8 — Dark Mode | ✅ Concluída |
-| Sprint 9 — Polimento e Testes | ✅ Concluída |
-| Sprint 10 — Deploy | ⬜ Pendente |
+| Sprint | Status | Tasks |
+|---|---|---|
+| Sprint 1 — Setup | ✅ Concluída | 8/8 |
+| Sprint 2 — Auth | ✅ Concluída | 7/7 |
+| Sprint 3 — Core Regras de Negócio | ✅ Concluída | 14/14 |
+| Sprint 4 — Adapter Firebase | ✅ Concluída | 8/8 |
+| Sprint 5 — UI Básica + Componentes | ✅ Concluída | 12/12 |
+| Sprint 6 — CRUD de Temas | ✅ Concluída | 11/11 |
+| Sprint 7 — Calendário de Estudos | ✅ Concluída | 13/13 |
+| Sprint 8 — Dark Mode | ✅ Concluída | 9/9 |
+| Sprint 9 — Polimento e Testes | ✅ Concluída | 12/12 |
+| Sprint 10 — Deploy | ✅ Concluída | 6/6 |
+| Sprint 11 — Calendário Grid Completo | ✅ Concluída | 10/10 |
+| Sprint 12 — Core Revisões | ✅ Concluída | 12/12 |
+| Sprint 13 — Adapter Firebase Revisões | ✅ Concluída | 7/7 |
+| Sprint 14 — UI Revisões + Calendário | ✅ Concluída | 14/14 |
+| Sprint 15 — Métricas e Comparação | ✅ Concluída | 9/9 |
+| Sprint 16 — Calendário Unificado | ✅ Concluída | 8/8 |
+| Sprint 17 — Validação de Datas | ✅ Concluída | 3/3 |
+| Sprint 18 — Horas/Progresso Cards | ✅ Concluída | 2/2 |
+| Sprint 19 — Bug Modal Calendário | ✅ Concluída | 2/2 |
+| Sprint 20 — Input HH:MM | ✅ Concluída | 4/4 |
+| **Sprint 21 — Core Compartilhamento** | **✅ Concluída** | **8/8** |
+| Sprint 22 — Firebase+UI Compartilhamento | ⬜ Pendente | 0/10 |
+| Sprint 23 — Comentários/Anotações | ⬜ Pendente | 0/5 |
+| **TOTAL** | | **173/187** |
+
+---
+
+## 🆕 Sprint 21 — Core Compartilhamento de Temas
+
+A camada de domínio para compartilhamento de temas de estudo foi implementada:
+
+- **Entidade `SharedTopic`** — Representa um vínculo de compartilhamento entre usuários com status (`pending`/`accepted`/`rejected`) e permissão (`edit`/`view`)
+- **Campos de compartilhamento em `StudyTopic`** — `sharedWith`, `isShared`, `ownerUserId`
+- **Rastreamento em `StudySession`** — `createdBy`, `completedBy` para auditoria em colaboração
+- **Port `ISharingRepository`** — Contrato com 7 métodos para gerenciar compartilhamentos
+- **`ShareTopicUseCase`** — Valida proprietário, busca destinatário por e-mail (Firebase Auth), evita duplicatas
+- **`GetPendingInvitationsUseCase`** — Lista convites pendentes enriquecidos com dados do tópico
+- **`AcceptInvitationUseCase`** — Aceita convite, atualiza `sharedWith[]` no tópico
+- **`GetStudyTopicsUseCase` atualizado** — Retorna temas próprios + compartilhados, marcados com `isShared`
+
+A implementação Firebase e UI será feita na **Sprint 22**.
 
 ---
 
