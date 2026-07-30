@@ -7,7 +7,7 @@
   <img src="https://img.shields.io/badge/Firebase-10.12-%23FFCA28?logo=firebase" alt="Firebase" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-3.4-%2306B6D4?logo=tailwindcss" alt="Tailwind CSS" />
   <img src="https://img.shields.io/badge/Vite-5.3-%23646CFF?logo=vite" alt="Vite" />
-  <img src="https://img.shields.io/badge/Sprints-173%2F187-%2346C93A" alt="Progress" />
+  <img src="https://img.shields.io/badge/Sprints-183%2F187-%2346C93A" alt="Progress" />
 </p>
 
 <p align="center">
@@ -27,7 +27,7 @@ Recursos principais:
 - 📊 Dashboard de progresso com filtros por tema e métricas
 - 🔁 Módulo de Revisões com questionários de autoavaliação (good/easy/again) e spaced repetition
 - 📈 Métricas de revisões: taxa de acerto, distribuição, calendário
-- 👥 **Compartilhamento de Temas** (core implementado — UI/Firebase em andamento)
+- 👥 **Compartilhamento de Temas** — convide usuários por e-mail para visualizar/editar temas
 - 🕐 Input de horas no formato HH:MM
 - 🌗 **Dark Mode** com persistência híbrida (localStorage + Firestore)
 - 🔄 Atualizações otimistas (toggle de conclusão)
@@ -90,7 +90,8 @@ src/
 │   │   ├── config.ts
 │   │   ├── FirebaseAuthRepository.ts
 │   │   ├── FirebaseStudyRepository.ts
-│   │   └── FirebaseReviewRepository.ts
+│   │   ├── FirebaseReviewRepository.ts
+│   │   └── FirebaseSharingRepository.ts   # 🆕 Sprint 22
 │   └── toast/                     # Serviço de toasts (react-hot-toast)
 │       └── HotToastService.ts
 │
@@ -102,34 +103,31 @@ src/
 │   │   ├── ProgressData.ts
 │   │   ├── Review.ts
 │   │   ├── ReviewQuestionnaire.ts
-│   │   └── SharedTopic.ts         # 🆕 Sprint 21
+│   │   └── SharedTopic.ts         # Sprint 21
 │   ├── ports/                     # Interfaces (contratos)
 │   │   ├── IAuthRepository.ts
 │   │   ├── IStudyRepository.ts
 │   │   ├── IReviewRepository.ts
-│   │   ├── ISharingRepository.ts  # 🆕 Sprint 21
+│   │   ├── ISharingRepository.ts  # Sprint 21
 │   │   └── IToastService.ts
 │   └── useCases/                  # Casos de uso (Clean Architecture)
-│       ├── Study/
-│       │   ├── CreateStudyTopicUseCase.ts
-│       │   ├── UpdateStudyTopicUseCase.ts
-│       │   ├── DeleteStudyTopicUseCase.ts
-│       │   ├── GetStudyTopicsUseCase.ts
-│       │   ├── ScheduleStudyDaysUseCase.ts
-│       │   ├── ToggleSessionCompletionUseCase.ts
-│       │   ├── GetCalendarSessionsUseCase.ts
-│       │   └── GetStudyProgressUseCase.ts
-│       ├── Review/
-│       │   ├── CreateReviewUseCase.ts
-│       │   ├── UpdateReviewUseCase.ts
-│       │   ├── DeleteReviewUseCase.ts
-│       │   ├── CreateOrUpdateQuestionnaireUseCase.ts
-│       │   ├── GetReviewCalendarUseCase.ts
-│       │   └── GetReviewStatsUseCase.ts
-│       └── Sharing/               # 🆕 Sprint 21
-│           ├── ShareTopicUseCase.ts
-│           ├── GetPendingInvitationsUseCase.ts
-│           └── AcceptInvitationUseCase.ts
+│       ├── CreateStudyTopicUseCase.ts
+│       ├── UpdateStudyTopicUseCase.ts
+│       ├── DeleteStudyTopicUseCase.ts
+│       ├── GetStudyTopicsUseCase.ts
+│       ├── ScheduleStudyDaysUseCase.ts
+│       ├── ToggleSessionCompletionUseCase.ts
+│       ├── GetCalendarSessionsUseCase.ts
+│       ├── GetStudyProgressUseCase.ts
+│       ├── CreateReviewUseCase.ts
+│       ├── UpdateReviewUseCase.ts
+│       ├── DeleteReviewUseCase.ts
+│       ├── CreateOrUpdateQuestionnaireUseCase.ts
+│       ├── GetReviewCalendarUseCase.ts
+│       ├── GetReviewStatsUseCase.ts
+│       ├── ShareTopicUseCase.ts         # Sprint 21
+│       ├── GetPendingInvitationsUseCase.ts  # Sprint 21
+│       └── AcceptInvitationUseCase.ts       # Sprint 21
 │
 ├── di/
 │   └── container.ts               # Dependency Injection container
@@ -138,7 +136,8 @@ src/
 │   ├── components/
 │   │   ├── layout/                # AppLayout, ProtectedRoute
 │   │   ├── review/                # Componentes de revisão
-│   │   ├── study/                 # TopicFormModal, ConfirmDeleteModal
+│   │   ├── study/                 # TopicFormModal, ConfirmDeleteModal,
+│   │   │                          # ShareTopicModal 🆕 Sprint 22
 │   │   └── ui/                    # Button, Input, Modal, Spinner, ColorPicker,
 │   │                              # DatePicker, ProgressBar, ThemeToggle, TimeInput
 │   ├── context/
@@ -150,7 +149,8 @@ src/
 │   │   ├── useStudyTopics.ts
 │   │   ├── useStudyProgress.ts
 │   │   ├── useCalendarSessions.ts
-│   │   └── useReviews.ts
+│   │   ├── useReviews.ts
+│   │   └── useSharing.ts          # 🆕 Sprint 22
 │   └── pages/
 │       ├── LoginPage.tsx
 │       ├── HomePage.tsx
@@ -258,27 +258,36 @@ O projeto segue os princípios da **Clean Architecture**:
 | Sprint 18 — Horas/Progresso Cards | ✅ Concluída | 2/2 |
 | Sprint 19 — Bug Modal Calendário | ✅ Concluída | 2/2 |
 | Sprint 20 — Input HH:MM | ✅ Concluída | 4/4 |
-| **Sprint 21 — Core Compartilhamento** | **✅ Concluída** | **8/8** |
-| Sprint 22 — Firebase+UI Compartilhamento | ⬜ Pendente | 0/10 |
+| Sprint 21 — Core Compartilhamento | ✅ Concluída | 8/8 |
+| **Sprint 22 — Firebase+UI Compartilhamento** | **✅ Concluída** | **10/10** |
 | Sprint 23 — Comentários/Anotações | ⬜ Pendente | 0/5 |
-| **TOTAL** | | **173/187** |
+| **TOTAL** | | **183/187** |
 
 ---
 
-## 🆕 Sprint 21 — Core Compartilhamento de Temas
+## 🆕 Sprint 22 — Firebase + UI: Compartilhamento de Temas
 
-A camada de domínio para compartilhamento de temas de estudo foi implementada:
+A implementação completa do compartilhamento de temas foi concluída:
 
-- **Entidade `SharedTopic`** — Representa um vínculo de compartilhamento entre usuários com status (`pending`/`accepted`/`rejected`) e permissão (`edit`/`view`)
-- **Campos de compartilhamento em `StudyTopic`** — `sharedWith`, `isShared`, `ownerUserId`
-- **Rastreamento em `StudySession`** — `createdBy`, `completedBy` para auditoria em colaboração
-- **Port `ISharingRepository`** — Contrato com 7 métodos para gerenciar compartilhamentos
-- **`ShareTopicUseCase`** — Valida proprietário, busca destinatário por e-mail (Firebase Auth), evita duplicatas
-- **`GetPendingInvitationsUseCase`** — Lista convites pendentes enriquecidos com dados do tópico
-- **`AcceptInvitationUseCase`** — Aceita convite, atualiza `sharedWith[]` no tópico
-- **`GetStudyTopicsUseCase` atualizado** — Retorna temas próprios + compartilhados, marcados com `isShared`
+### Firebase
+- **`FirebaseSharingRepository`** — Collection top-level `sharedTopics` com todos os métodos do contrato `ISharingRepository`:
+  - `shareTopic`, `getPendingInvitations`, `acceptInvitation`, `rejectInvitation`
+  - `getSharedTopics` (busca tópicos aceitos na collection do owner)
+  - `removeShare` (remove vínculo e atualiza `sharedWith[]` no tópico)
+  - `findExistingShare`, `getSharesForTopic`, `getSharedTopicById`
+- **`FirebaseStudyRepository` atualizado** — `topicFromDoc` agora lê campos `sharedWith`, `isShared`, `ownerUserId`
+- **Container DI** — `sharingRepository` registrado como singleton; todos os use cases de sharing instantâneos
 
-A implementação Firebase e UI será feita na **Sprint 22**.
+### UI
+- **Hook `useSharing`** — Gerencia convites pendentes, compartilhamento, aceitação/recusa e remoção
+- **`ShareTopicModal`** — Modal com input de e-mail + seletor de permissão (editar/visualizar)
+- **Indicador visual** — Badge roxo "Compartilhado" 👥 nos cards de temas recebidos
+- **Área de convites pendentes** — Seção destacada em azul com botões Aceitar/Recusar
+- **Modal de gerenciamento** — Lista de compartilhamentos com opção de remover acesso
+
+### Infraestrutura
+- **`firestore.rules`** — Novas regras para collection `sharedTopics`: owner pode criar/atualizar/deletar, convidado pode ler e atualizar apenas `status`
+- **`firestore.indexes.json`** — Índices compostos: `sharedWithUserId` + `status`, `topicId` + `sharedWithUserId`
 
 ---
 

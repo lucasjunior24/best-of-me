@@ -41,6 +41,9 @@ function topicFromDoc(snapshot: QueryDocumentSnapshot<DocumentData>): StudyTopic
     hoursPerDay: data.hoursPerDay,
     createdAt: parseTimestamp(data.createdAt as Timestamp),
     updatedAt: parseTimestamp(data.updatedAt as Timestamp),
+    sharedWith: data.sharedWith ?? [],
+    isShared: data.isShared ?? false,
+    ownerUserId: data.ownerUserId ?? data.userId,
   };
 }
 

@@ -2,13 +2,15 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useStudyTopics } from '../../hooks/useStudyTopics';
+import { useSharing } from '../../hooks/useSharing';
 import { Button } from '../../components/ui/Button';
 import { ProgressBar } from '../../components/ui/ProgressBar';
 import { TopicFormModal } from '../../components/study/TopicFormModal';
+import { ShareTopicModal } from '../../components/study/ShareTopicModal';
 import { formatHours } from '../../components/ui/TimeInput';
 import { ConfirmDeleteModal } from '../../components/study/ConfirmDeleteModal';
-import { container } from '../../../di/container';
 import type { StudyTopic } from '../../../core/entities/StudyTopic';
+import { container } from '../../../di/container';
 
 // ---------------------------------------------------------------------------
 // Skeleton Card
@@ -34,7 +36,6 @@ function SkeletonCard() {
 function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
-      {/* Simple SVG illustration */}
       <svg
         className="mb-6 h-32 w-32 text-gray-300 dark:text-gray-600"
         viewBox="0 0 128 128"
@@ -125,6 +126,241 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
 }
 
 // ---------------------------------------------------------------------------
+// Pending Invitations Section
+// ---------------------------------------------------------------------------
+
+function PendingInvitationsSection({
+  invitations,
+  loading,
+  onAccept,
+  onReject,
+  userId,
+}: {
+  invitations: {
+    id: string;
+    topic: StudyTopic | null;
+    ownerEmail: string;
+    topicId: string;
+  }[];
+  loading: boolean;
+  onAccept: (sharedId: string, userId: string) => Promise<boolean>;
+  onReject: (sharedId: string) => Promise<boolean>;
+  userId: string;
+}) {
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  if (invitations.length === 0) return null;
+
+  return (
+    <div className="mb-8 rounded-2xl border border-brand-200 bg-brand-50 p-5 dark:border-brand-800 dark:bg-brand-900/20">
+      <div className="mb-3 flex items-center gap-2">
+        <svg
+          className="h-5 w-5 text-brand-600 dark:text-brand-400"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={1.5}
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
+          />
+        </svg>
+        <h2 className="text-base font-semibold text-brand-800 dark:text-brand-200">
+          {invitations.length}{' '}
+          {invitations.length === 1 ? 'convite pendente' : 'convites pendentes'}
+        </h2>
+      </div>
+
+      <div className="space-y-2">
+        {invitations.map((invite) => (
+          <div
+            key={invite.id}
+            className="flex items-center justify-between rounded-xl border border-brand-200 bg-white p-4 dark:border-brand-700 dark:bg-gray-800"
+          >
+            <div>
+              <p className="font-medium text-gray-900 dark:text-gray-100">
+                {invite.topic?.name ?? 'Tema desconhecido'}
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Convite de {invite.ownerEmail}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={async () => {
+                  setActionLoading(invite.id);
+                  await onReject(invite.id);
+                  setActionLoading(null);
+                }}
+                loading={actionLoading === invite.id}
+                disabled={loading || actionLoading !== null}
+              >
+                Recusar
+              </Button>
+              <Button
+                size="sm"
+                onClick={async () => {
+                  setActionLoading(invite.id);
+                  await onAccept(invite.id, userId);
+                  setActionLoading(null);
+                }}
+                loading={actionLoading === invite.id}
+                disabled={loading || actionLoading !== null}
+              >
+                Aceitar
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Manage Shares Modal
+// ---------------------------------------------------------------------------
+
+function ManageSharesModal({
+  isOpen,
+  onClose,
+  topicName,
+  shares,
+  loading,
+  onRemoveShare,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  topicName: string;
+  shares: { id: string; sharedWithEmail: string; permission: string; status: string }[];
+  loading: boolean;
+  onRemoveShare: (sharedId: string) => Promise<boolean>;
+}) {
+  const [removingId, setRemovingId] = useState<string | null>(null);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="relative w-full max-w-lg rounded-2xl border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-800 dark:bg-gray-900"
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Gerenciar compartilhamento — {topicName}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+            aria-label="Fechar"
+          >
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {shares.length === 0 ? (
+          <p className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+            Este tema ainda não foi compartilhado com ninguém.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {shares.map((share) => (
+              <div
+                key={share.id}
+                className="flex items-center justify-between rounded-lg border border-gray-200 p-3 dark:border-gray-700"
+              >
+                <div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {share.sharedWithEmail}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {share.permission === 'edit' ? 'Pode editar' : 'Apenas visualizar'} ·{' '}
+                    {share.status === 'accepted'
+                      ? 'Aceito'
+                      : share.status === 'pending'
+                        ? 'Pendente'
+                        : 'Recusado'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setRemovingId(share.id);
+                    await onRemoveShare(share.id);
+                    setRemovingId(null);
+                  }}
+                  disabled={removingId === share.id || loading}
+                  className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/30 dark:hover:text-red-400 disabled:opacity-50"
+                  aria-label={`Remover acesso de ${share.sharedWithEmail}`}
+                >
+                  {removingId === share.id ? (
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                      />
+                    </svg>
+                  ) : (
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                      />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-4 flex justify-end">
+          <Button variant="outline" onClick={onClose}>
+            Fechar
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // StudyTopicsPage
 // ---------------------------------------------------------------------------
 
@@ -142,17 +378,35 @@ export function StudyTopicsPage() {
     deleteTopic,
   } = useStudyTopics();
 
+  const {
+    pendingInvitations,
+    invitationsLoading,
+    loadInvitations,
+    shareTopic: shareTopicFn,
+    acceptInvitation,
+    rejectInvitation,
+    sharesForTopic,
+    loadSharesForTopic,
+    removeShare,
+  } = useSharing();
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTopic, setEditingTopic] = useState<StudyTopic | null>(null);
   const [editingDates, setEditingDates] = useState<string[]>([]);
   const [deletingTopic, setDeletingTopic] = useState<StudyTopic | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  // Share states
+  const [shareTarget, setShareTarget] = useState<StudyTopic | null>(null);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [manageShareTarget, setManageShareTarget] = useState<StudyTopic | null>(null);
+
   const fetchTopics = useCallback(() => {
     if (user) {
       loadTopics(user.id);
+      loadInvitations(user.id);
     }
-  }, [user, loadTopics]);
+  }, [user, loadTopics, loadInvitations]);
 
   useEffect(() => {
     fetchTopics();
@@ -167,7 +421,6 @@ export function StudyTopicsPage() {
   };
 
   const handleOpenEdit = async (topic: StudyTopic) => {
-    // Buscar datas agendadas para o tópico
     try {
       const now = new Date();
       const startDate = '2024-01-01';
@@ -200,13 +453,53 @@ export function StudyTopicsPage() {
     setDeletingTopic(null);
   };
 
+  const handleShareClick = (topic: StudyTopic) => {
+    setShareTarget(topic);
+  };
+
+  const handleShareSubmit = async (email: string, permission: 'edit' | 'view') => {
+    if (!shareTarget || !user) return;
+    setShareLoading(true);
+    const result = await shareTopicFn(shareTarget.id, user.id, email, permission);
+    console.log(result);
+    if (result) {
+      setShareTarget(null);
+    }
+    setShareLoading(false);
+  };
+
+  const handleManageShareClick = async (topic: StudyTopic) => {
+    setManageShareTarget(topic);
+    await loadSharesForTopic(topic.id);
+  };
+
+  const handleRemoveShare = async (sharedId: string): Promise<boolean> => {
+    const result = await removeShare(sharedId);
+    if (result && manageShareTarget) {
+      await loadSharesForTopic(manageShareTarget.id);
+    }
+    return result;
+  };
+  console.log(manageShareTarget);
+  console.log('pendingInvitations', pendingInvitations);
+  const handleAcceptInvitation = async (sharedId: string, userId: string) => {
+    const result = await acceptInvitation(sharedId, userId);
+    if (result) {
+      fetchTopics();
+    }
+    return result;
+  };
+
+  const handleRejectInvitation = async (sharedId: string): Promise<boolean> => {
+    return rejectInvitation(sharedId);
+  };
+
   // ---- Render --------------------------------------------------------------
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Header */}
-
-      <div className="flex items-center gap-2 mb-1">
+      {/* Back link */}
+      <div className="mb-1 flex items-center gap-2">
         <button
           type="button"
           onClick={() => navigate('/study')}
@@ -215,6 +508,19 @@ export function StudyTopicsPage() {
           ← Voltar para visão geral
         </button>
       </div>
+
+      {/* Pending Invitations */}
+      {!loading && user && (
+        <PendingInvitationsSection
+          invitations={pendingInvitations}
+          loading={invitationsLoading}
+          onAccept={handleAcceptInvitation}
+          onReject={handleRejectInvitation}
+          userId={user.id}
+        />
+      )}
+
+      {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Temas de Estudo</h1>
@@ -263,6 +569,28 @@ export function StudyTopicsPage() {
                 />
 
                 <div className="ml-2">
+                  {/* Shared badge */}
+                  <div className="mb-2 flex items-center gap-2">
+                    {topic.isShared && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                        <svg
+                          className="h-3 w-3"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={2}
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"
+                          />
+                        </svg>
+                        Compartilhado
+                      </span>
+                    )}
+                  </div>
+
                   <h3 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
                     {topic.name}
                   </h3>
@@ -324,6 +652,52 @@ export function StudyTopicsPage() {
 
                 {/* Actions (visible on hover) */}
                 <div className="absolute right-3 top-3 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                  {/* Share button */}
+                  <button
+                    type="button"
+                    onClick={() => handleShareClick(topic)}
+                    className="rounded-lg p-1.5 text-gray-400 hover:bg-blue-50 hover:text-blue-500 dark:hover:bg-blue-900/30 dark:hover:text-blue-400"
+                    aria-label={`Compartilhar ${topic.name}`}
+                    title="Compartilhar"
+                  >
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z"
+                      />
+                    </svg>
+                  </button>
+
+                  {/* Manage shares button (for owner to see who has access) */}
+                  <button
+                    type="button"
+                    onClick={() => handleManageShareClick(topic)}
+                    className="rounded-lg p-1.5 text-gray-400 hover:bg-indigo-50 hover:text-indigo-500 dark:hover:bg-indigo-900/30 dark:hover:text-indigo-400"
+                    aria-label={`Gerenciar compartilhamento de ${topic.name}`}
+                    title="Gerenciar acesso"
+                  >
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"
+                      />
+                    </svg>
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => handleOpenEdit(topic)}
@@ -365,17 +739,6 @@ export function StudyTopicsPage() {
                     </svg>
                   </button>
                 </div>
-
-                {/* Back button for study overview */}
-                <div className="mt-4 ml-2">
-                  <button
-                    type="button"
-                    onClick={() => navigate('/study')}
-                    className="text-xs text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
-                  >
-                    ← Voltar para visão geral
-                  </button>
-                </div>
               </div>
             );
           })}
@@ -402,6 +765,27 @@ export function StudyTopicsPage() {
           loading={deleteLoading}
         />
       )}
+
+      {/* Share Modal */}
+      {shareTarget && (
+        <ShareTopicModal
+          isOpen={!!shareTarget}
+          onClose={() => setShareTarget(null)}
+          onShare={handleShareSubmit}
+          loading={shareLoading}
+          topicName={shareTarget.name}
+        />
+      )}
+
+      {/* Manage Shares Modal */}
+      <ManageSharesModal
+        isOpen={!!manageShareTarget}
+        onClose={() => setManageShareTarget(null)}
+        topicName={manageShareTarget?.name ?? ''}
+        shares={sharesForTopic}
+        loading={false}
+        onRemoveShare={handleRemoveShare}
+      />
     </div>
   );
 }
