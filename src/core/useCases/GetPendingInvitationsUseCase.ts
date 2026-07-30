@@ -14,8 +14,8 @@ export class GetPendingInvitationsUseCase {
     private readonly studyRepository: IStudyRepository,
   ) {}
 
-  async execute(userId: string): Promise<PendingInvitation[]> {
-    const invitations = await this.sharingRepository.getPendingInvitations(userId);
+  async execute(email: string): Promise<PendingInvitation[]> {
+    const invitations = await this.sharingRepository.getPendingInvitations(email);
 
     // Buscar os tópicos relacionados aos convites
     const invitationsWithTopics = await Promise.all(

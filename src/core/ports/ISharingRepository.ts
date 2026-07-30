@@ -3,8 +3,8 @@ import type { StudyTopic } from '../entities/StudyTopic';
 
 export interface ISharingRepository {
   shareTopic(input: CreateSharedTopicInput): Promise<SharedTopic>;
-  getPendingInvitations(userId: string): Promise<SharedTopic[]>;
-  acceptInvitation(sharedId: string): Promise<void>;
+  getPendingInvitations(email: string): Promise<SharedTopic[]>;
+  acceptInvitation(sharedId: string, userId: string): Promise<void>;
   rejectInvitation(sharedId: string): Promise<void>;
   getSharedTopics(userId: string): Promise<StudyTopic[]>;
   removeShare(sharedId: string): Promise<void>;

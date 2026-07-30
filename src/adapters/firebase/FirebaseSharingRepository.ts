@@ -99,10 +99,10 @@ export class FirebaseSharingRepository implements ISharingRepository {
 
   // ---- getPendingInvitations -----------------------------------------------
 
-  async getPendingInvitations(userId: string): Promise<SharedTopic[]> {
+  async getPendingInvitations(email: string): Promise<SharedTopic[]> {
     const q = query(
       this.sharedTopicsCollection(),
-      where('sharedWithUserId', '==', userId),
+      where('sharedWithEmail', '==', email),
       where('status', '==', 'pending'),
     );
 
@@ -112,7 +112,7 @@ export class FirebaseSharingRepository implements ISharingRepository {
 
   // ---- acceptInvitation ----------------------------------------------------
 
-  async acceptInvitation(sharedId: string): Promise<void> {
+  async acceptInvitation(sharedId: string, userId: string): Promise<void> {
     const docRef = doc(this.sharedTopicsCollection(), sharedId);
     const snapshot = await getDoc(docRef);
 
@@ -120,7 +120,10 @@ export class FirebaseSharingRepository implements ISharingRepository {
       throw new NotFoundError('SharedTopic', sharedId);
     }
 
-    await updateDoc(docRef, { status: 'accepted' });
+    await updateDoc(docRef, {
+      status: 'accepted',
+      sharedWithUserId: userId,
+    });
   }
 
   // ---- rejectInvitation ----------------------------------------------------

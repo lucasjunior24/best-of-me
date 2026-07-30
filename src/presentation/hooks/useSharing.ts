@@ -10,14 +10,14 @@ interface UseSharingReturn {
   invitationsError: string | null;
   sharesForTopic: SharedTopic[];
   sharesLoading: boolean;
-  loadInvitations: (userId: string) => Promise<void>;
+  loadInvitations: (email: string) => Promise<void>;
   shareTopic: (
     topicId: string,
     ownerUserId: string,
     targetEmail: string,
     permission: 'edit' | 'view',
   ) => Promise<SharedTopic | null>;
-  acceptInvitation: (sharedId: string, userId: string) => Promise<boolean>;
+  acceptInvitation: (sharedId: string, email: string, userId: string) => Promise<boolean>;
   rejectInvitation: (sharedId: string) => Promise<boolean>;
   loadSharesForTopic: (topicId: string) => Promise<void>;
   removeShare: (sharedId: string) => Promise<boolean>;
@@ -30,11 +30,11 @@ export function useSharing(): UseSharingReturn {
   const [sharesForTopic, setSharesForTopic] = useState<SharedTopic[]>([]);
   const [sharesLoading, setSharesLoading] = useState(false);
 
-  const loadInvitations = useCallback(async (userId: string) => {
+  const loadInvitations = useCallback(async (email: string) => {
     setInvitationsLoading(true);
     setInvitationsError(null);
     try {
-      const result = await container.useCases.getPendingInvitations.execute(userId);
+      const result = await container.useCases.getPendingInvitations.execute(email);
       setPendingInvitations(result);
     } catch (err) {
       const message = handleError(err);
@@ -69,9 +69,9 @@ export function useSharing(): UseSharingReturn {
   );
 
   const acceptInvitation = useCallback(
-    async (sharedId: string, userId: string): Promise<boolean> => {
+    async (sharedId: string, email: string, userId: string): Promise<boolean> => {
       try {
-        await container.useCases.acceptInvitation.execute(sharedId, userId);
+        await container.useCases.acceptInvitation.execute(sharedId, email, userId);
         container.toastService.success('Convite aceito! 🎉');
         // Remover da lista local
         setPendingInvitations((prev) => prev.filter((inv) => inv.id !== sharedId));

@@ -134,6 +134,7 @@ function PendingInvitationsSection({
   loading,
   onAccept,
   onReject,
+  email,
   userId,
 }: {
   invitations: {
@@ -143,8 +144,9 @@ function PendingInvitationsSection({
     topicId: string;
   }[];
   loading: boolean;
-  onAccept: (sharedId: string, userId: string) => Promise<boolean>;
+  onAccept: (sharedId: string, email: string, userId: string) => Promise<boolean>;
   onReject: (sharedId: string) => Promise<boolean>;
+  email: string;
   userId: string;
 }) {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -205,7 +207,7 @@ function PendingInvitationsSection({
                 size="sm"
                 onClick={async () => {
                   setActionLoading(invite.id);
-                  await onAccept(invite.id, userId);
+                  await onAccept(invite.id, email, userId);
                   setActionLoading(null);
                 }}
                 loading={actionLoading === invite.id}
@@ -404,7 +406,7 @@ export function StudyTopicsPage() {
   const fetchTopics = useCallback(() => {
     if (user) {
       loadTopics(user.id);
-      loadInvitations(user.id);
+      loadInvitations(user.email);
     }
   }, [user, loadTopics, loadInvitations]);
 
@@ -461,12 +463,12 @@ export function StudyTopicsPage() {
     if (!shareTarget || !user) return;
     setShareLoading(true);
     const result = await shareTopicFn(shareTarget.id, user.id, email, permission);
-    console.log(result);
     if (result) {
       setShareTarget(null);
     }
     setShareLoading(false);
   };
+  console.log('sharesForTopic', sharesForTopic);
 
   const handleManageShareClick = async (topic: StudyTopic) => {
     setManageShareTarget(topic);
@@ -480,10 +482,10 @@ export function StudyTopicsPage() {
     }
     return result;
   };
-  console.log(manageShareTarget);
-  console.log('pendingInvitations', pendingInvitations);
-  const handleAcceptInvitation = async (sharedId: string, userId: string) => {
-    const result = await acceptInvitation(sharedId, userId);
+  console.log('manageShareTarget', manageShareTarget);
+
+  const handleAcceptInvitation = async (sharedId: string, email: string, userId: string) => {
+    const result = await acceptInvitation(sharedId, email, userId);
     if (result) {
       fetchTopics();
     }
@@ -516,6 +518,7 @@ export function StudyTopicsPage() {
           loading={invitationsLoading}
           onAccept={handleAcceptInvitation}
           onReject={handleRejectInvitation}
+          email={user.email}
           userId={user.id}
         />
       )}

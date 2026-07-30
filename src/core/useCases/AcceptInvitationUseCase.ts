@@ -10,16 +10,16 @@ export class AcceptInvitationUseCase {
     private readonly toastService: IToastService,
   ) {}
 
-  async execute(sharedId: string, userId: string): Promise<void> {
+  async execute(sharedId: string, email: string, userId: string): Promise<void> {
     // Buscar o convite para validar
-    const invitations = await this.sharingRepository.getPendingInvitations(userId);
+    const invitations = await this.sharingRepository.getPendingInvitations(email);
     const invitation = invitations.find((inv) => inv.id === sharedId);
 
     if (!invitation) {
       throw new NotFoundError('SharedTopic', sharedId);
     }
 
-    if (invitation.sharedWithUserId !== userId) {
+    if (invitation.sharedWithEmail !== email) {
       throw new ValidationError('Este convite não pertence a você.');
     }
 
@@ -30,7 +30,7 @@ export class AcceptInvitationUseCase {
     }
 
     // Aceitar o convite
-    await this.sharingRepository.acceptInvitation(sharedId);
+    await this.sharingRepository.acceptInvitation(sharedId, userId);
 
     // Atualizar o tópico adicionando o usuário ao array sharedWith
     const topic = await this.studyRepository
@@ -39,9 +39,9 @@ export class AcceptInvitationUseCase {
 
     if (topic) {
       const currentSharedWith = topic.sharedWith ?? [];
-      if (!currentSharedWith.includes(userId)) {
+      if (!currentSharedWith.includes(email)) {
         await this.studyRepository.updateTopic(topic.id, {
-          sharedWith: [...currentSharedWith, userId],
+          sharedWith: [...currentSharedWith, email],
         });
       }
     }

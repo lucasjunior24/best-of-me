@@ -20,7 +20,6 @@ export class CreateStudyTopicUseCase {
       hoursPerDay: input.hoursPerDay,
     };
     const createdTopic = await this.studyRepository.createTopic(topic);
-    console.log('created RESULT:', createdTopic);
 
     if (input.scheduledDates.length > 0) {
       const sessions = input.scheduledDates.map((date) => ({

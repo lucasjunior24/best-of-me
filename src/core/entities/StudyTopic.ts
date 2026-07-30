@@ -13,6 +13,7 @@ export interface StudyTopic {
   isShared?: boolean;
   /** ID do usuário que criou o tema originalmente */
   ownerUserId?: string;
+  sharedWithUserId?: string;
 }
 
 export type CreateStudyTopicInput = {
