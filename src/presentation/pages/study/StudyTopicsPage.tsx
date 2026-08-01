@@ -450,7 +450,7 @@ export function StudyTopicsPage() {
   const handleDeleteConfirm = async () => {
     if (!deletingTopic) return;
     setDeleteLoading(true);
-    await deleteTopic(deletingTopic.id);
+    await deleteTopic(deletingTopic.id, deletingTopic.isShared);
     setDeleteLoading(false);
     setDeletingTopic(null);
   };

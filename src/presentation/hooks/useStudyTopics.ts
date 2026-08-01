@@ -16,7 +16,7 @@ interface UseStudyTopicsReturn {
   loadTopics: (userId: string) => Promise<void>;
   createTopic: (userId: string, input: CreateStudyTopicInput) => Promise<StudyTopic | null>;
   updateTopic: (topicId: string, data: UpdateStudyTopicInput) => Promise<StudyTopic | null>;
-  deleteTopic: (topicId: string) => Promise<boolean>;
+  deleteTopic: (topicId: string, isShared?: boolean) => Promise<boolean>;
 }
 
 export function useStudyTopics(): UseStudyTopicsReturn {
@@ -24,12 +24,14 @@ export function useStudyTopics(): UseStudyTopicsReturn {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [topicProgressMap, setTopicProgressMap] = useState<Map<string, TopicProgress>>(new Map());
-  const loadedRef = useRef(false);
+  const userIdRef = useRef<string | null>(null);
 
   const loadTopics = useCallback(async (userId: string) => {
     setLoading(true);
     setError(null);
     try {
+      userIdRef.current = userId;
+
       const [result, progressData] = await Promise.all([
         container.useCases.getStudyTopics.execute(userId),
         container.useCases.getStudyProgress.execute(userId),
@@ -43,8 +45,6 @@ export function useStudyTopics(): UseStudyTopicsReturn {
         map.set(tp.topicId, tp);
       }
       setTopicProgressMap(map);
-
-      loadedRef.current = true;
     } catch (err) {
       const message = handleError(err);
       setError(message);
@@ -89,10 +89,10 @@ export function useStudyTopics(): UseStudyTopicsReturn {
     [],
   );
 
-  const deleteTopic = useCallback(async (topicId: string): Promise<boolean> => {
+  const deleteTopic = useCallback(async (topicId: string, isShared?: boolean): Promise<boolean> => {
     setError(null);
     try {
-      await container.useCases.deleteStudyTopic.execute(topicId);
+      await container.useCases.deleteStudyTopic.execute(topicId, userIdRef.current ?? '', isShared);
       setTopics((prev) => prev.filter((t) => t.id !== topicId));
       return true;
     } catch (err) {

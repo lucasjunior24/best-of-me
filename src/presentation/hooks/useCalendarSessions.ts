@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import type { CalendarDayFull } from '../../core/entities/ProgressData';
 import type { StudyTopic } from '../../core/entities/StudyTopic';
 import type { CreateQuestionnaireInput } from '../../core/entities/ReviewQuestionnaire';
@@ -20,8 +20,9 @@ interface UseCalendarSessionsReturn {
   filterByTopics: (topicIds: string[]) => void;
   setModuleFilter: (filter: ModuleFilter) => void;
   toggleSession: (sessionId: string) => Promise<void>;
+  updateSessionNotes: (sessionId: string, notes: string) => Promise<void>;
   saveQuestionnaire: (userId: string, input: CreateQuestionnaireInput) => Promise<boolean>;
-  loadMonth: (year: number, month: number) => Promise<void>;
+  loadMonth: (year: number, month: number, userId: string) => Promise<void>;
   /** True se nenhum dia do mês tem atividades (estudos + revisões) */
   isEmptyMonth: boolean;
 }
@@ -37,20 +38,18 @@ export function useCalendarSessions(): UseCalendarSessionsReturn {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth() + 1 };
   });
+  const userIdRef = useRef<string | null>(null);
 
   const loadMonth = useCallback(
-    async (year: number, month: number) => {
+    async (year: number, month: number, userId: string) => {
       setLoading(true);
       setError(null);
       try {
+        userIdRef.current = userId;
+
         const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
         const lastDay = new Date(year, month, 0).getDate();
         const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
-
-        const userId = container.studyRepository['_lastUserId'];
-        if (!userId) {
-          throw new Error('Usuário não autenticado');
-        }
 
         const [days, topicsData] = await Promise.all([
           container.useCases.getCalendarSessions.execute(
@@ -116,6 +115,9 @@ export function useCalendarSessions(): UseCalendarSessionsReturn {
 
   const toggleSession = useCallback(
     async (sessionId: string) => {
+      const userId = userIdRef.current;
+      if (!userId) throw new Error('Usuário não autenticado');
+
       // Update otimista
       const previousDays = calendarDays;
       setCalendarDays((prev) =>
@@ -142,10 +144,36 @@ export function useCalendarSessions(): UseCalendarSessionsReturn {
       );
 
       try {
-        const userId = container.studyRepository['_lastUserId'];
-        if (!userId) throw new Error('Usuário não autenticado');
-
         await container.useCases.toggleSessionCompletion.execute(sessionId, userId);
+      } catch (err) {
+        // Reverter em caso de erro
+        setCalendarDays(previousDays);
+        const message = handleError(err);
+        container.toastService.error(message);
+      }
+    },
+    [calendarDays],
+  );
+
+  const updateSessionNotes = useCallback(
+    async (sessionId: string, notes: string) => {
+      const userId = userIdRef.current;
+      if (!userId) throw new Error('Usuário não autenticado');
+
+      // Update otimista
+      const previousDays = calendarDays;
+      setCalendarDays((prev) =>
+        prev.map((day) => ({
+          ...day,
+          studySessions: day.studySessions.map((s) => {
+            if (s.sessionId !== sessionId) return s;
+            return { ...s, notes };
+          }),
+        })),
+      );
+
+      try {
+        await container.useCases.updateSessionNotes.execute(sessionId, userId, notes);
       } catch (err) {
         // Reverter em caso de erro
         setCalendarDays(previousDays);
@@ -201,6 +229,7 @@ export function useCalendarSessions(): UseCalendarSessionsReturn {
     filterByTopics,
     setModuleFilter,
     toggleSession,
+    updateSessionNotes,
     saveQuestionnaire,
     loadMonth,
     isEmptyMonth,

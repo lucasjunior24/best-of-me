@@ -7,7 +7,7 @@
   <img src="https://img.shields.io/badge/Firebase-10.12-%23FFCA28?logo=firebase" alt="Firebase" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-3.4-%2306B6D4?logo=tailwindcss" alt="Tailwind CSS" />
   <img src="https://img.shields.io/badge/Vite-5.3-%23646CFF?logo=vite" alt="Vite" />
-  <img src="https://img.shields.io/badge/Sprints-183%2F187-%2346C93A" alt="Progress" />
+  <img src="https://img.shields.io/badge/Sprints-187%2F187-%2346C93A" alt="Progress" />
 </p>
 
 <p align="center">
@@ -260,14 +260,43 @@ O projeto segue os princípios da **Clean Architecture**:
 | Sprint 20 — Input HH:MM | ✅ Concluída | 4/4 |
 | Sprint 21 — Core Compartilhamento | ✅ Concluída | 8/8 |
 | **Sprint 22 — Firebase+UI Compartilhamento** | **✅ Concluída** | **10/10** |
-| Sprint 23 — Comentários/Anotações | ⬜ Pendente | 0/5 |
-| **TOTAL** | | **183/187** |
+| Sprint 23 — Comentários/Anotações | ✅ Concluída | 5/5 |
+| **TOTAL** | | **187/187** |
+
+---
+
+## 🆕 Sprint 23 — Comentários/Anotações + Bug Fixes
+
+A Sprint 23 adiciona anotações nas sessões de estudo e corrige dois bugs relacionados a temas compartilhados:
+
+### Anotações nas Sessões
+- **Campo `notes`** adicionado na entidade `StudySession` e em `ProgressData.CalendarDay.sessions`
+- **`updateSessionNotes`** no `IStudyRepository` — novo contrato para persistir anotações
+- **`FirebaseStudyRepository`** — implementação usando `updateDoc` no Firestore
+- **`UpdateSessionNotesUseCase`** — caso de uso com feedback via toast
+- **UI `NotesEditor`** — componente inline no modal de detalhes do dia com:
+  - Botão "+ Adicionar anotação" quando não há notas
+  - Exibição resumida com "Editar anotação"
+  - Textarea com salvar/cancelar e update otimista
+
+### Bug Fixes
+
+#### Correção: Dias de estudo compartilhado não apareciam no calendário
+- **`GetCalendarSessionsUseCase`** agora faz sincronização proativa: antes de buscar sessions do usuário, verifica tópicos compartilhados e espelha sessions do owner que ainda não existem no convidado
+- Resolve o problema de sessions adicionadas pelo owner após o aceite do convite não serem visíveis
+
+#### Correção: Erro ao remover estudo compartilhado
+- **`IStudyRepository.deleteSessionsByTopic(userId, topicId)`** — novo método para remover sessions sem deletar o tópico original (essencial para tópicos compartilhados)
+- **`ISharingRepository.removeShareForTopic(topicId, userId)`** — novo método para remover vínculo de compartilhamento
+- **`DeleteStudyTopicUseCase`** refatorado: aceita `userId` e `isShared`; remove vínculo + sessions espelhadas quando o tópico é compartilhado
+- **`StudyTopicsPage`** passa `isShared` ao chamar `deleteTopic`
 
 ---
 
 ## 🆕 Sprint 22 — Firebase + UI: Compartilhamento de Temas
 
-A implementação completa do compartilhamento de temas foi concluída:
+A implementação completa do compartilhamento de temas foi concluída, incluindo a integração com o calendário para exibir atividades de temas compartilhados:
+
 
 ### Firebase
 - **`FirebaseSharingRepository`** — Collection top-level `sharedTopics` com todos os métodos do contrato `ISharingRepository`:
@@ -284,6 +313,12 @@ A implementação completa do compartilhamento de temas foi concluída:
 - **Indicador visual** — Badge roxo "Compartilhado" 👥 nos cards de temas recebidos
 - **Área de convites pendentes** — Seção destacada em azul com botões Aceitar/Recusar
 - **Modal de gerenciamento** — Lista de compartilhamentos com opção de remover acesso
+
+### Calendário (Integração — Sprint 22)
+- **`GetCalendarSessionsUseCase` atualizado** — Agora busca tópicos compartilhados via `ISharingRepository` e os inclui no mapa de nomes/cores, permitindo que as sessions espelhadas sejam exibidas com os nomes corretos no calendário
+- **Container DI** — `GetCalendarSessionsUseCase` recebe `sharingRepository` como terceiro parâmetro para acesso aos tópicos compartilhados
+- **`useCalendarSessions` refatorado** — `loadMonth` agora recebe `userId` explicitamente como parâmetro, eliminando o acesso ao campo privado `_lastUserId` do repositório
+- **`StudyCalendarPage` atualizado** — Passa `user.id` ao chamar `loadMonth` para que as sessions de temas compartilhados sejam corretamente carregadas
 
 ### Infraestrutura
 - **`firestore.rules`** — Novas regras para collection `sharedTopics`: owner pode criar/atualizar/deletar, convidado pode ler e atualizar apenas `status`

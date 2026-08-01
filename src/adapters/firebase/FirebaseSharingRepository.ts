@@ -8,6 +8,7 @@ import {
   getDocs,
   query,
   where,
+  writeBatch,
   serverTimestamp,
   type Timestamp,
   type DocumentData,
@@ -258,6 +259,27 @@ export class FirebaseSharingRepository implements ISharingRepository {
     if (!snapshot.exists()) return null;
 
     return sharedTopicFromDoc(snapshot as QueryDocumentSnapshot<DocumentData>);
+  }
+
+  // ---- removeShareForTopic -------------------------------------------------
+
+  async removeShareForTopic(topicId: string, sharedWithUserId: string): Promise<void> {
+    const q = query(
+      this.sharedTopicsCollection(),
+      where('topicId', '==', topicId),
+      where('sharedWithUserId', '==', sharedWithUserId),
+    );
+
+    const snapshot = await getDocs(q);
+
+    // Deletar todos os documentos de compartilhamento encontrados
+    const batch = writeBatch(db);
+    for (const docSnap of snapshot.docs) {
+      batch.delete(docSnap.ref);
+    }
+    if (!snapshot.empty) {
+      await batch.commit();
+    }
   }
 
   // ---- getUserEmail (auxiliar para enriquecer convites) ---------------------

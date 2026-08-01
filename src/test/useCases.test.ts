@@ -17,6 +17,8 @@ function createMockRepo() {
     getSessionsByDateRange: vi.fn(),
     toggleSessionCompletion: vi.fn(),
     getProgress: vi.fn(),
+    updateSessionNotes: vi.fn(),
+    deleteSessionsByTopic: vi.fn(),
   };
 }
 
@@ -127,7 +129,7 @@ describe('DeleteStudyTopicUseCase', () => {
     const toast = createMockToast();
     const useCase = new DeleteStudyTopicUseCase(repo, toast);
 
-    await useCase.execute('topic-1');
+    await useCase.execute('topic-1', 'user-1');
 
     expect(repo.deleteTopic).toHaveBeenCalledWith('topic-1');
     expect(toast.success).toHaveBeenCalledWith('Tema removido');

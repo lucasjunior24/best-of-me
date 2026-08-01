@@ -21,6 +21,12 @@ export interface IStudyRepository {
   ): Promise<StudySession[]>;
   toggleSessionCompletion(sessionId: string, userId: string): Promise<StudySession>;
 
+  /** Atualiza as anotações de uma sessão de estudo */
+  updateSessionNotes(sessionId: string, userId: string, notes: string): Promise<StudySession>;
+
+  /** Remove todas as sessions de um tópico para um usuário específico */
+  deleteSessionsByTopic(userId: string, topicId: string): Promise<void>;
+
   // Progress
   getProgress(userId: string, topicIds?: string[]): Promise<ProgressData>;
 }

@@ -11,6 +11,7 @@ import { ScheduleStudyDaysUseCase } from '../core/useCases/ScheduleStudyDaysUseC
 import { ToggleSessionCompletionUseCase } from '../core/useCases/ToggleSessionCompletionUseCase';
 import { GetCalendarSessionsUseCase } from '../core/useCases/GetCalendarSessionsUseCase';
 import { GetStudyProgressUseCase } from '../core/useCases/GetStudyProgressUseCase';
+import { UpdateSessionNotesUseCase } from '../core/useCases/UpdateSessionNotesUseCase';
 import { CreateReviewUseCase } from '../core/useCases/CreateReviewUseCase';
 import { UpdateReviewUseCase } from '../core/useCases/UpdateReviewUseCase';
 import { DeleteReviewUseCase } from '../core/useCases/DeleteReviewUseCase';
@@ -32,12 +33,17 @@ const useCases = {
   // Study use cases
   createStudyTopic: new CreateStudyTopicUseCase(studyRepository, toastService),
   updateStudyTopic: new UpdateStudyTopicUseCase(studyRepository, toastService),
-  deleteStudyTopic: new DeleteStudyTopicUseCase(studyRepository, toastService),
+  deleteStudyTopic: new DeleteStudyTopicUseCase(studyRepository, toastService, sharingRepository),
   getStudyTopics: new GetStudyTopicsUseCase(studyRepository, sharingRepository),
   scheduleStudyDays: new ScheduleStudyDaysUseCase(studyRepository, toastService),
   toggleSessionCompletion: new ToggleSessionCompletionUseCase(studyRepository, toastService),
-  getCalendarSessions: new GetCalendarSessionsUseCase(studyRepository, reviewRepository),
+  getCalendarSessions: new GetCalendarSessionsUseCase(
+    studyRepository,
+    reviewRepository,
+    sharingRepository,
+  ),
   getStudyProgress: new GetStudyProgressUseCase(studyRepository),
+  updateSessionNotes: new UpdateSessionNotesUseCase(studyRepository, toastService),
 
   // Review use cases
   createReview: new CreateReviewUseCase(reviewRepository),

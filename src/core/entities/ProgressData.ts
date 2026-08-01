@@ -26,6 +26,7 @@ export interface CalendarDay {
     completed: boolean;
     completedAt?: Date;
     hoursPerDay: number;
+    notes?: string;
   }>;
   allCompleted: boolean;
   anyCompleted: boolean;

@@ -11,6 +11,8 @@ export interface StudySession {
   createdBy?: string;
   /** ID do usuário que concluiu a session */
   completedBy?: string;
+  /** Anotações/comentários do usuário sobre esta sessão */
+  notes?: string;
 }
 
 export type StudySessionWithTopic = StudySession & {

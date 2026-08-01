@@ -39,6 +39,7 @@ export function StudyCalendarPage() {
     filterByTopics,
     moduleFilter,
     toggleSession,
+    updateSessionNotes,
     loadMonth,
     setModuleFilter,
   } = useCalendarSessions();
@@ -55,7 +56,7 @@ export function StudyCalendarPage() {
 
   const loadData = useCallback(() => {
     if (user) {
-      loadMonth(currentMonth.year, currentMonth.month);
+      loadMonth(currentMonth.year, currentMonth.month, user.id);
     }
   }, [user, currentMonth, loadMonth]);
 
@@ -501,14 +502,14 @@ export function StudyCalendarPage() {
                       <div
                         key={session.sessionId}
                         className={twMerge(
-                          'flex items-center gap-3 p-3 rounded-lg border transition-colors',
+                          'flex items-start gap-3 p-3 rounded-lg border transition-colors',
                           session.completed
                             ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
                             : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700',
                         )}
                       >
                         <div
-                          className="w-3 h-3 rounded-full flex-shrink-0"
+                          className="w-3 h-3 rounded-full flex-shrink-0 mt-1.5"
                           style={{ backgroundColor: session.topicColor }}
                         />
                         <div className="flex-1 min-w-0">
@@ -523,11 +524,18 @@ export function StudyCalendarPage() {
                               Concluído em {formatDateTime(session.completedAt)}
                             </p>
                           )}
+                          {/* Anotações da sessão */}
+                          <NotesEditor
+                            sessionId={session.sessionId}
+                            initialNotes={session.notes ?? ''}
+                            topicName={session.topicName}
+                            onSave={updateSessionNotes}
+                          />
                         </div>
                         <button
                           onClick={() => toggleSession(session.sessionId)}
                           className={twMerge(
-                            'relative inline-flex h-6 w-11 items-center rounded-full flex-shrink-0',
+                            'relative inline-flex h-6 w-11 items-center rounded-full flex-shrink-0 mt-1',
                             'transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2',
                             session.completed ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600',
                           )}
@@ -548,7 +556,7 @@ export function StudyCalendarPage() {
                 </div>
               )}
 
-              {/* Seção Revisões (placeholder - Sprint 14) */}
+              {/* Seção Revisões */}
               {selectedDay.reviewSessions.length > 0 && (
                 <div>
                   <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
@@ -600,6 +608,99 @@ export function StudyCalendarPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// NotesEditor — componente inline para anotações de uma sessão
+// ---------------------------------------------------------------------------
+
+function NotesEditor({
+  sessionId,
+  initialNotes,
+  topicName,
+  onSave,
+}: {
+  sessionId: string;
+  initialNotes: string;
+  topicName: string;
+  onSave: (sessionId: string, notes: string) => Promise<void>;
+}) {
+  const [notes, setNotes] = useState(initialNotes);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const hasNotes = initialNotes.trim().length > 0;
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave(sessionId, notes);
+    setSaving(false);
+    setEditing(false);
+  };
+
+  const handleCancel = () => {
+    setNotes(initialNotes);
+    setEditing(false);
+  };
+
+  if (!editing && !hasNotes) {
+    return (
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        className="mt-1 text-xs text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
+      >
+        + Adicionar anotação
+      </button>
+    );
+  }
+
+  if (!editing && hasNotes) {
+    return (
+      <div className="mt-1.5">
+        <p className="text-xs text-gray-600 dark:text-gray-400 italic bg-gray-100 dark:bg-gray-800 rounded-md px-2 py-1 line-clamp-2">
+          "{initialNotes}"
+        </p>
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="mt-0.5 text-xs text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 transition-colors"
+        >
+          Editar anotação
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-1.5">
+      <textarea
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        placeholder={`Anotações sobre ${topicName}...`}
+        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-gray-800 placeholder-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:placeholder-gray-500 resize-none"
+        rows={2}
+        autoFocus
+      />
+      <div className="mt-1.5 flex gap-2 justify-end">
+        <button
+          type="button"
+          onClick={handleCancel}
+          disabled={saving}
+          className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors disabled:opacity-50"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          className="text-xs font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 transition-colors disabled:opacity-50"
+        >
+          {saving ? 'Salvando...' : 'Salvar'}
+        </button>
+      </div>
     </div>
   );
 }

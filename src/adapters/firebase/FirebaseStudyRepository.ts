@@ -58,6 +58,7 @@ function sessionFromDoc(snapshot: QueryDocumentSnapshot<DocumentData>): StudySes
     completedAt: data.completedAt ? parseTimestamp(data.completedAt as Timestamp) : undefined,
     duration: data.duration,
     createdAt: parseTimestamp(data.createdAt as Timestamp),
+    notes: data.notes ?? undefined,
   };
 }
 
@@ -302,6 +303,41 @@ export class FirebaseStudyRepository implements IStudyRepository {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await updateDoc(docRef, updatePayload as any);
+
+    const updatedSnapshot = await getDoc(docRef);
+    return sessionFromDoc(updatedSnapshot as QueryDocumentSnapshot<DocumentData>);
+  }
+
+  // ---- deleteSessionsByTopic -----------------------------------------------
+
+  async deleteSessionsByTopic(userId: string, topicId: string): Promise<void> {
+    const sessionsQuery = query(this.sessionsCollection(userId), where('topicId', '==', topicId));
+    const sessionsSnapshot = await getDocs(sessionsQuery);
+
+    if (sessionsSnapshot.empty) return;
+
+    const batch = writeBatch(db);
+    for (const sessionDoc of sessionsSnapshot.docs) {
+      batch.delete(sessionDoc.ref);
+    }
+    await batch.commit();
+  }
+
+  // ---- updateSessionNotes --------------------------------------------------
+
+  async updateSessionNotes(
+    sessionId: string,
+    userId: string,
+    notes: string,
+  ): Promise<StudySession> {
+    const docRef = doc(this.sessionsCollection(userId), sessionId);
+    const snapshot = await getDoc(docRef);
+
+    if (!snapshot.exists()) {
+      throw new NotFoundError('StudySession', sessionId);
+    }
+
+    await updateDoc(docRef, { notes });
 
     const updatedSnapshot = await getDoc(docRef);
     return sessionFromDoc(updatedSnapshot as QueryDocumentSnapshot<DocumentData>);

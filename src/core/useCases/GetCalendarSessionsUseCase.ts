@@ -1,5 +1,6 @@
 import type { IStudyRepository } from '../ports/IStudyRepository';
 import type { IReviewRepository } from '../ports/IReviewRepository';
+import type { ISharingRepository } from '../ports/ISharingRepository';
 import type { CalendarDayFull, ReviewSessionCalendarData } from '../entities/ProgressData';
 import type { StudyTopic } from '../entities/StudyTopic';
 
@@ -7,6 +8,7 @@ export class GetCalendarSessionsUseCase {
   constructor(
     private readonly studyRepository: IStudyRepository,
     private readonly reviewRepository?: IReviewRepository,
+    private readonly sharingRepository?: ISharingRepository,
   ) {}
 
   async execute(
@@ -15,20 +17,70 @@ export class GetCalendarSessionsUseCase {
     endDate: string,
     topicIds?: string[],
   ): Promise<CalendarDayFull[]> {
-    // Buscar sessões de estudo
+    // Buscar tópicos próprios + compartilhados para o mapa de nomes/cores
+    const ownTopics = await this.studyRepository.getTopicsByUser(userId);
+    const sharedTopics = this.sharingRepository
+      ? await this.sharingRepository.getSharedTopics(userId)
+      : [];
+
+    // Marcar tópicos compartilhados para referência visual
+    const markedSharedTopics = sharedTopics.map((t) => ({
+      ...t,
+      isShared: true,
+      ownerUserId: t.ownerUserId ?? t.userId,
+    }));
+
+    // Combinar evitando duplicatas
+    const ownTopicIds = new Set(ownTopics.map((t) => t.id));
+    const uniqueSharedTopics = markedSharedTopics.filter((t) => !ownTopicIds.has(t.id));
+    const allTopics = [...ownTopics, ...uniqueSharedTopics];
+
+    const topicMap = new Map<string, StudyTopic>();
+    for (const topic of allTopics) {
+      topicMap.set(topic.id, topic);
+    }
+
+    // Sincronizar sessions de tópicos compartilhados (owner → invited user)
+    // Isso garante que novas sessions adicionadas pelo owner após o aceite
+    // apareçam no calendário do usuário convidado
+    if (this.sharingRepository && uniqueSharedTopics.length > 0) {
+      for (const sharedTopic of uniqueSharedTopics) {
+        const ownerUserId = sharedTopic.ownerUserId;
+        if (!ownerUserId || ownerUserId === userId) continue;
+
+        try {
+          // Buscar sessions do owner para este tópico
+          const ownerSessions = await this.studyRepository.getSessionsByDateRange(
+            ownerUserId,
+            '2024-01-01',
+            '2099-12-31',
+            [sharedTopic.id],
+          );
+
+          if (ownerSessions.length > 0) {
+            // Espelhar apenas sessions que ainda não existem no usuário
+            const mirroredSessions = ownerSessions.map((session) => ({
+              userId,
+              topicId: session.topicId,
+              date: session.date,
+              duration: session.duration,
+              createdBy: session.userId,
+            }));
+            await this.studyRepository.scheduleSessions(mirroredSessions);
+          }
+        } catch {
+          // Se o owner não existir mais ou o tópico tiver sido deletado, ignorar
+        }
+      }
+    }
+
+    // Buscar sessões de estudo (inclui sessions espelhadas de temas compartilhados)
     const sessions = await this.studyRepository.getSessionsByDateRange(
       userId,
       startDate,
       endDate,
       topicIds,
     );
-
-    const topics = await this.studyRepository.getTopicsByUser(userId);
-
-    const topicMap = new Map<string, StudyTopic>();
-    for (const topic of topics) {
-      topicMap.set(topic.id, topic);
-    }
 
     // Agrupar sessões por data
     const sessionsByDate = new Map<string, CalendarDayFull['studySessions']>();
@@ -49,6 +101,7 @@ export class GetCalendarSessionsUseCase {
         completed: session.completed,
         completedAt: session.completedAt,
         hoursPerDay: topic.hoursPerDay,
+        notes: session.notes,
       });
     }
 
