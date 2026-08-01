@@ -468,8 +468,6 @@ export function StudyTopicsPage() {
     }
     setShareLoading(false);
   };
-  console.log('sharesForTopic', sharesForTopic);
-
   const handleManageShareClick = async (topic: StudyTopic) => {
     setManageShareTarget(topic);
     await loadSharesForTopic(topic.id);
@@ -482,8 +480,6 @@ export function StudyTopicsPage() {
     }
     return result;
   };
-  console.log('manageShareTarget', manageShareTarget);
-
   const handleAcceptInvitation = async (sharedId: string, email: string, userId: string) => {
     const result = await acceptInvitation(sharedId, email, userId);
     if (result) {

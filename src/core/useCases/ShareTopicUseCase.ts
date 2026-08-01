@@ -53,6 +53,7 @@ export class ShareTopicUseCase {
     const sharedTopic = await this.sharingRepository.shareTopic({
       topicId,
       ownerUserId,
+      ownerEmail: currentUser?.email ?? undefined,
       sharedWithUserId: targetUser.id,
       sharedWithEmail: targetEmail,
       permission,

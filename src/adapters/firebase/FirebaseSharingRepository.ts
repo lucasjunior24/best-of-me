@@ -34,6 +34,7 @@ function sharedTopicFromDoc(snapshot: QueryDocumentSnapshot<DocumentData>): Shar
     id: snapshot.id,
     topicId: data.topicId,
     ownerUserId: data.ownerUserId,
+    ownerEmail: data.ownerEmail ?? undefined,
     sharedWithUserId: data.sharedWithUserId,
     sharedWithEmail: data.sharedWithEmail,
     permission: data.permission ?? 'edit',
@@ -79,6 +80,7 @@ export class FirebaseSharingRepository implements ISharingRepository {
     const docData = {
       topicId: input.topicId,
       ownerUserId: input.ownerUserId,
+      ownerEmail: input.ownerEmail ?? null,
       sharedWithUserId: input.sharedWithUserId,
       sharedWithEmail: input.sharedWithEmail,
       permission: input.permission,
@@ -256,5 +258,19 @@ export class FirebaseSharingRepository implements ISharingRepository {
     if (!snapshot.exists()) return null;
 
     return sharedTopicFromDoc(snapshot as QueryDocumentSnapshot<DocumentData>);
+  }
+
+  // ---- getUserEmail (auxiliar para enriquecer convites) ---------------------
+
+  async getUserEmail(userId: string): Promise<string | null> {
+    // Buscar em qualquer sharedTopic que tenha este userId como ownerUserId
+    // e retornar o ownerEmail armazenado
+    const q = query(this.sharedTopicsCollection(), where('ownerUserId', '==', userId));
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) {
+      const data = snapshot.docs[0].data();
+      return data.ownerEmail ?? null;
+    }
+    return null;
   }
 }

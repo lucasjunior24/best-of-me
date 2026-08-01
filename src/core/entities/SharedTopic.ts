@@ -2,6 +2,7 @@ export interface SharedTopic {
   id: string;
   topicId: string;
   ownerUserId: string;
+  ownerEmail?: string;
   sharedWithUserId: string;
   sharedWithEmail: string;
   permission: 'edit' | 'view';
@@ -12,6 +13,7 @@ export interface SharedTopic {
 export type CreateSharedTopicInput = {
   topicId: string;
   ownerUserId: string;
+  ownerEmail?: string;
   sharedWithUserId: string;
   sharedWithEmail: string;
   permission: 'edit' | 'view';

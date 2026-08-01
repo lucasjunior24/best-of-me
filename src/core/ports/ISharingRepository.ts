@@ -10,4 +10,6 @@ export interface ISharingRepository {
   removeShare(sharedId: string): Promise<void>;
   /** Busca um SharedTopic pelo ID do tópico e usuário destino (para evitar duplicatas) */
   findExistingShare(topicId: string, sharedWithUserId: string): Promise<SharedTopic | null>;
+  /** Busca o email de um usuário pelo ID (para enriquecer convites) */
+  getUserEmail(userId: string): Promise<string | null>;
 }
