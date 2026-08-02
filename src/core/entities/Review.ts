@@ -3,9 +3,12 @@ export interface Review {
   userId: string;
   name: string;
   color: string;
-  startDate: string; // "YYYY-MM-DD"
-  intervalDays: number;
-  totalReviews: number;
+  /** Datas agendadas (YYYY-MM-DD) — fonte da verdade */
+  scheduledDates: string[];
+  /** Metadados do modo automático (opcionais, preservados para referência) */
+  startDate?: string;
+  intervalDays?: number;
+  totalReviews?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -13,17 +16,19 @@ export interface Review {
 export type CreateReviewInput = {
   name: string;
   color: string;
-  startDate: string;
-  intervalDays: number;
-  totalReviews: number;
+  /** Datas agendadas manualmente ou geradas automaticamente */
+  scheduledDates: string[];
+  /** Metadados do modo automático (opcionais) */
+  startDate?: string;
+  intervalDays?: number;
+  totalReviews?: number;
 };
 
 export type UpdateReviewInput = Partial<CreateReviewInput>;
 
 /**
- * Gera as datas de revisão com base nos parâmetros do Review.
- * As datas são derivadas sob demanda (não persistidas),
- * evitando inconsistências se o usuário editar o intervalo depois.
+ * Gera as datas de revisão com base nos parâmetros do Review (modo automático).
+ * Mantido como utilitário para compatibilidade e migração.
  *
  * Ex: startDate='2026-08-10', intervalDays=5, totalReviews=3
  *     → ['2026-08-10', '2026-08-15', '2026-08-20']

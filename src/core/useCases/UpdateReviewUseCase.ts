@@ -25,6 +25,24 @@ export class UpdateReviewUseCase {
       throw new ValidationError('Cor inválida. Use o formato hexadecimal (#RRGGBB).');
     }
 
+    // Validar scheduledDates se fornecido
+    if (input.scheduledDates !== undefined) {
+      if (input.scheduledDates.length === 0) {
+        throw new ValidationError('É necessário selecionar ao menos 1 data de revisão.');
+      }
+
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      for (const date of input.scheduledDates) {
+        if (!dateRegex.test(date)) {
+          throw new ValidationError(`Data inválida: "${date}". Use o formato YYYY-MM-DD.`);
+        }
+        const parsed = new Date(date + 'T00:00:00');
+        if (isNaN(parsed.getTime())) {
+          throw new ValidationError(`Data inválida: "${date}".`);
+        }
+      }
+    }
+
     if (input.startDate !== undefined) {
       const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
       if (!dateRegex.test(input.startDate)) {

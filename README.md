@@ -7,7 +7,7 @@
   <img src="https://img.shields.io/badge/Firebase-10.12-%23FFCA28?logo=firebase" alt="Firebase" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-3.4-%2306B6D4?logo=tailwindcss" alt="Tailwind CSS" />
   <img src="https://img.shields.io/badge/Vite-5.3-%23646CFF?logo=vite" alt="Vite" />
-  <img src="https://img.shields.io/badge/Sprints-187%2F187-%2346C93A" alt="Progress" />
+<img src="https://img.shields.io/badge/Sprints-188%2F222-%23F59E0B" alt="Progress" />
 </p>
 
 <p align="center">
@@ -33,10 +33,16 @@ Recursos principais:
 - 🔄 Atualizações otimistas (toggle de conclusão)
 - 📱 Responsivo (mobile-first com Tailwind)
 - ♿ Acessibilidade com roles ARIA e navegação por teclado
+- 🗓️ **DatePicker em Revisões** — seleção manual de múltiplas datas para revisões *(planejado)*
+- 👥 **Compartilhamento de Revisões** — convide usuários para revisões compartilhadas *(planejado)*
+- 📊 **Desempenho Cruzado** — visualize o progresso de ambos em itens compartilhados *(planejado)*
+- 🏠 **Calendário na Home** — calendário unificado como tela principal *(planejado)*
+- ✏️ **Edição Completa** — edite tudo (inclusive datas) em estudos e revisões compartilhados *(planejado)*
+- 🔙 **Navegação Global** — botão Voltar em todas as telas *(planejado)*
 
 ---
 
-## 🚀 Setup Rápido
+## � Setup Rápido
 
 ### Pré-requisitos
 
@@ -261,7 +267,59 @@ O projeto segue os princípios da **Clean Architecture**:
 | Sprint 21 — Core Compartilhamento | ✅ Concluída | 8/8 |
 | **Sprint 22 — Firebase+UI Compartilhamento** | **✅ Concluída** | **10/10** |
 | Sprint 23 — Comentários/Anotações | ✅ Concluída | 5/5 |
-| **TOTAL** | | **187/187** |
+| Sprint 24 — DatePicker Revisões | ⬜ Planejada | 0/10 |
+| Sprint 25 — Compartilhamento Revisões | ⬜ Planejada | 0/9 |
+| Sprint 26 — Desempenho Cruzado | ⬜ Planejada | 0/7 |
+| Sprint 27 — Calendário Home + Edição + Nav | ⬜ Planejada | 0/9 |
+| **TOTAL** | | **188/222** |
+
+---
+
+## 🆕 Sprints 24-27 — Novas Features (Planejadas)
+
+As próximas sprints trarão melhorias significativas ao sistema:
+
+### Sprint 24 — Revisões com DatePicker (Múltiplas Datas)
+- **DatePicker de múltipla seleção** no cadastro/edição de revisões, mesmo componente já usado nos estudos
+- **Modo Automático mantido**: o usuário pode alternar entre gerar datas automaticamente (`startDate + intervalDays + totalReviews`) ou selecionar manualmente no calendário
+- Campo `scheduledDates: string[]` como fonte da verdade na entidade `Review`
+- Preview em tempo real das datas selecionadas
+- Migração automática de revisões antigas (deriva `scheduledDates` quando não existir)
+
+### Sprint 25 — Compartilhamento de Revisões
+- **Compartilhamento de revisões** via e-mail (Google Auth), seguindo o mesmo modelo dos estudos
+- Collection `sharedReviews` com vínculos de permissão (`edit` / `view`)
+- Cada usuário mantém **seus próprios questionários** (desempenho individual)
+- Convites pendentes com botões Aceitar/Recusar
+- Badge "Compartilhado" 👥 nos cards de revisões recebidas
+
+### Sprint 26 — Desempenho Cruzado + Visibilidade Mútua
+- **Calendário exibe atividades de ambos os usuários** para itens compartilhados
+- Modal de detalhes do dia mostra progresso do dono e do convidado lado a lado
+- **Toggle de conclusão individual**: cada um marca o seu, sem afetar o do outro
+- Indicador visual 👤 + nome para identificar de quem é cada atividade
+- Comparação de desempenho em cards de temas e revisões compartilhados
+
+### Sprint 27 — Calendário na Home + Edição Completa + Navegação Global
+- **Calendário unificado como tela principal** (`/`) após o login
+- Componente `UnifiedCalendar` reutilizável extraído do `StudyCalendarPage`
+- **Edição completa** de estudos e revisões (nome, cor, datas) para itens compartilhados
+- Ambos os usuários com permissão `edit` podem alterar tudo
+- **Botão "← Voltar"** em todas as páginas (Temas, Revisões, Métricas, etc.)
+- Breadcrumb dinâmico aprimorado no header (ex: "Início > Estudos > Temas")
+
+### Dependências
+```
+Sprint 24 (DatePicker Revisões)
+    ↓
+Sprint 25 (Compartilhamento Revisões)
+    ↓
+Sprint 26 (Desempenho Cruzado)
+    ↓
+Sprint 27 (Calendário Home + Edição + Nav)
+```
+
+> **Documentação completa:** Consulte `.rulescline/SPRINTS.md` para o detalhamento de todas as tasks (35 tasks planejadas para as Sprints 24-27).
 
 ---
 

@@ -12,6 +12,7 @@ export class CreateReviewUseCase {
       userId,
       name: input.name.trim(),
       color: input.color,
+      scheduledDates: input.scheduledDates,
       startDate: input.startDate,
       intervalDays: input.intervalDays,
       totalReviews: input.totalReviews,
@@ -29,38 +30,52 @@ export class CreateReviewUseCase {
       throw new ValidationError('Cor inválida. Use o formato hexadecimal (#RRGGBB).');
     }
 
-    if (!input.startDate) {
-      throw new ValidationError('A data de início é obrigatória.');
+    // scheduledDates é obrigatório e deve ter ao menos 1 data
+    if (!input.scheduledDates || input.scheduledDates.length === 0) {
+      throw new ValidationError('É necessário selecionar ao menos 1 data de revisão.');
     }
 
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateRegex.test(input.startDate)) {
-      throw new ValidationError('Data de início inválida. Use o formato YYYY-MM-DD.');
+    for (const date of input.scheduledDates) {
+      if (!dateRegex.test(date)) {
+        throw new ValidationError(`Data inválida: "${date}". Use o formato YYYY-MM-DD.`);
+      }
+      const parsed = new Date(date + 'T00:00:00');
+      if (isNaN(parsed.getTime())) {
+        throw new ValidationError(`Data inválida: "${date}".`);
+      }
     }
 
-    const parsed = new Date(input.startDate + 'T00:00:00');
-    if (isNaN(parsed.getTime())) {
-      throw new ValidationError('Data de início inválida.');
+    // Validações dos metadados automáticos (opcionais)
+    if (input.startDate !== undefined) {
+      if (!dateRegex.test(input.startDate)) {
+        throw new ValidationError('Data de início inválida. Use o formato YYYY-MM-DD.');
+      }
+      const parsed = new Date(input.startDate + 'T00:00:00');
+      if (isNaN(parsed.getTime())) {
+        throw new ValidationError('Data de início inválida.');
+      }
     }
 
-    if (!input.intervalDays || input.intervalDays < 1) {
-      throw new ValidationError('O intervalo de dias deve ser pelo menos 1.');
+    if (input.intervalDays !== undefined) {
+      if (input.intervalDays < 1) {
+        throw new ValidationError('O intervalo de dias deve ser pelo menos 1.');
+      }
+      if (!Number.isInteger(input.intervalDays)) {
+        throw new ValidationError('O intervalo de dias deve ser um número inteiro.');
+      }
     }
 
-    if (!Number.isInteger(input.intervalDays)) {
-      throw new ValidationError('O intervalo de dias deve ser um número inteiro.');
-    }
-
-    if (!input.totalReviews || input.totalReviews < 1) {
-      throw new ValidationError('O total de revisões deve ser pelo menos 1.');
-    }
-
-    if (!Number.isInteger(input.totalReviews)) {
-      throw new ValidationError('O total de revisões deve ser um número inteiro.');
-    }
-
-    if (input.totalReviews > 365) {
-      throw new ValidationError('O total de revisões não pode exceder 365.');
+    if (input.totalReviews !== undefined) {
+      if (input.totalReviews < 1) {
+        throw new ValidationError('O total de revisões deve ser pelo menos 1.');
+      }
+      if (!Number.isInteger(input.totalReviews)) {
+        throw new ValidationError('O total de revisões deve ser um número inteiro.');
+      }
+      if (input.totalReviews > 365) {
+        throw new ValidationError('O total de revisões não pode exceder 365.');
+      }
     }
   }
 }

@@ -41,14 +41,31 @@ function parseTimestamp(value: Timestamp | null | undefined): Date {
 
 function reviewFromDoc(snapshot: QueryDocumentSnapshot<DocumentData>): Review {
   const data = snapshot.data();
+
+  // Migração: se scheduledDates não existe, derivar de startDate + intervalDays + totalReviews
+  let scheduledDates: string[];
+  if (Array.isArray(data.scheduledDates) && data.scheduledDates.length > 0) {
+    scheduledDates = data.scheduledDates;
+  } else if (data.startDate && data.intervalDays && data.totalReviews) {
+    // Fallback para dados antigos (migração automática)
+    scheduledDates = generateReviewDates(
+      data.startDate as string,
+      data.intervalDays as number,
+      data.totalReviews as number,
+    );
+  } else {
+    scheduledDates = [];
+  }
+
   return {
     id: snapshot.id,
     userId: data.userId,
     name: data.name,
     color: data.color,
-    startDate: data.startDate,
-    intervalDays: data.intervalDays,
-    totalReviews: data.totalReviews,
+    scheduledDates,
+    startDate: data.startDate ?? undefined,
+    intervalDays: data.intervalDays ?? undefined,
+    totalReviews: data.totalReviews ?? undefined,
     createdAt: parseTimestamp(data.createdAt as Timestamp),
     updatedAt: parseTimestamp(data.updatedAt as Timestamp),
   };
@@ -82,22 +99,25 @@ export class FirebaseReviewRepository implements IReviewRepository {
     return collection(db, 'users', uid, 'reviewQuestionnaires');
   }
 
-  // ---- T13.2: createReview --------------------------------------------------
+  // ---- createReview ----------------------------------------------------------
 
   async createReview(review: Omit<Review, 'id' | 'createdAt' | 'updatedAt'>): Promise<Review> {
     const id = uuidv4();
     const now = serverTimestamp();
 
-    const docData = {
+    const docData: Record<string, unknown> = {
       userId: review.userId,
       name: review.name,
       color: review.color,
-      startDate: review.startDate,
-      intervalDays: review.intervalDays,
-      totalReviews: review.totalReviews,
+      scheduledDates: review.scheduledDates,
       createdAt: now,
       updatedAt: now,
     };
+
+    // Preservar metadados automáticos se fornecidos
+    if (review.startDate !== undefined) docData.startDate = review.startDate;
+    if (review.intervalDays !== undefined) docData.intervalDays = review.intervalDays;
+    if (review.totalReviews !== undefined) docData.totalReviews = review.totalReviews;
 
     const docRef = doc(this.reviewsCollection(review.userId), id);
     await setDoc(docRef, docData);
@@ -112,7 +132,7 @@ export class FirebaseReviewRepository implements IReviewRepository {
     };
   }
 
-  // ---- T13.2: updateReview --------------------------------------------------
+  // ---- updateReview ----------------------------------------------------------
 
   async updateReview(id: string, data: UpdateReviewInput): Promise<Review> {
     const userId = this._resolveUserId();
@@ -129,6 +149,7 @@ export class FirebaseReviewRepository implements IReviewRepository {
 
     if (data.name !== undefined) updatePayload.name = data.name;
     if (data.color !== undefined) updatePayload.color = data.color;
+    if (data.scheduledDates !== undefined) updatePayload.scheduledDates = data.scheduledDates;
     if (data.startDate !== undefined) updatePayload.startDate = data.startDate;
     if (data.intervalDays !== undefined) updatePayload.intervalDays = data.intervalDays;
     if (data.totalReviews !== undefined) updatePayload.totalReviews = data.totalReviews;
@@ -140,7 +161,7 @@ export class FirebaseReviewRepository implements IReviewRepository {
     return reviewFromDoc(updatedSnapshot as QueryDocumentSnapshot<DocumentData>);
   }
 
-  // ---- T13.2: deleteReview --------------------------------------------------
+  // ---- deleteReview ----------------------------------------------------------
 
   async deleteReview(id: string): Promise<void> {
     const userId = this._resolveUserId();
@@ -170,7 +191,7 @@ export class FirebaseReviewRepository implements IReviewRepository {
     await batch.commit();
   }
 
-  // ---- T13.3: getReviewsByUser ----------------------------------------------
+  // ---- getReviewsByUser ------------------------------------------------------
 
   async getReviewsByUser(userId: string): Promise<Review[]> {
     this._lastUserId = userId;
@@ -181,7 +202,7 @@ export class FirebaseReviewRepository implements IReviewRepository {
     return snapshot.docs.map((d) => reviewFromDoc(d as QueryDocumentSnapshot<DocumentData>));
   }
 
-  // ---- T13.3: getReviewById -------------------------------------------------
+  // ---- getReviewById ---------------------------------------------------------
 
   async getReviewById(id: string): Promise<Review | null> {
     const userId = this._resolveUserId();
@@ -195,7 +216,7 @@ export class FirebaseReviewRepository implements IReviewRepository {
     return reviewFromDoc(snapshot as QueryDocumentSnapshot<DocumentData>);
   }
 
-  // ---- T13.4: createOrUpdateQuestionnaire -----------------------------------
+  // ---- createOrUpdateQuestionnaire -------------------------------------------
 
   async createOrUpdateQuestionnaire(
     input: CreateQuestionnaireInput & { userId: string },
@@ -249,7 +270,7 @@ export class FirebaseReviewRepository implements IReviewRepository {
     };
   }
 
-  // ---- T13.5: getQuestionnairesByReview -------------------------------------
+  // ---- getQuestionnairesByReview ---------------------------------------------
 
   async getQuestionnairesByReview(reviewId: string): Promise<ReviewQuestionnaire[]> {
     const userId = this._resolveUserId();
@@ -264,7 +285,7 @@ export class FirebaseReviewRepository implements IReviewRepository {
     return snapshot.docs.map((d) => questionnaireFromDoc(d as QueryDocumentSnapshot<DocumentData>));
   }
 
-  // ---- T13.5: getQuestionnaireByDate ----------------------------------------
+  // ---- getQuestionnaireByDate ------------------------------------------------
 
   async getQuestionnaireByDate(
     reviewId: string,
@@ -287,7 +308,7 @@ export class FirebaseReviewRepository implements IReviewRepository {
     return questionnaireFromDoc(snapshot.docs[0] as QueryDocumentSnapshot<DocumentData>);
   }
 
-  // ---- T13.6: getReviewSessionsByDateRange ----------------------------------
+  // ---- getReviewSessionsByDateRange ------------------------------------------
 
   async getReviewSessionsByDateRange(
     userId: string,
@@ -329,12 +350,8 @@ export class FirebaseReviewRepository implements IReviewRepository {
     const result: ReviewSessionCalendarData[] = [];
 
     for (const review of reviews) {
-      // Gerar todas as datas derivadas
-      const allDates = generateReviewDates(
-        review.startDate,
-        review.intervalDays,
-        review.totalReviews,
-      );
+      // Usar scheduledDates como fonte da verdade
+      const allDates = review.scheduledDates;
 
       // Filtrar datas que caem no range solicitado
       const datesInRange = filterReviewDatesInRange(allDates, startDate, endDate);
@@ -373,7 +390,7 @@ export class FirebaseReviewRepository implements IReviewRepository {
     return result;
   }
 
-  // ---- T13.6: getReviewStats ------------------------------------------------
+  // ---- getReviewStats --------------------------------------------------------
 
   async getReviewStats(userId: string, reviewIds?: string[]): Promise<ReviewStatsData> {
     // Buscar reviews do usuário
@@ -406,12 +423,8 @@ export class FirebaseReviewRepository implements IReviewRepository {
     const byReview: ReviewStats[] = [];
 
     for (const review of reviews) {
-      // Calcular todas as datas do ciclo
-      const allDates = generateReviewDates(
-        review.startDate,
-        review.intervalDays,
-        review.totalReviews,
-      );
+      // Usar scheduledDates como fonte da verdade
+      const allDates = review.scheduledDates;
       const totalReviews = allDates.length;
 
       // Filtrar questionários desta review

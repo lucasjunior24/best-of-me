@@ -4,6 +4,7 @@ import { twMerge } from 'tailwind-merge';
 import { useAuth } from '../../hooks/useAuth';
 import { useReviews } from '../../hooks/useReviews';
 import { Button } from '../../components/ui/Button';
+import { DatePicker } from '../../components/ui/DatePicker';
 import { generateReviewDates } from '../../../core/entities/Review';
 import type { Review, CreateReviewInput, UpdateReviewInput } from '../../../core/entities/Review';
 
@@ -140,7 +141,7 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
 }
 
 // ---------------------------------------------------------------------------
-// ReviewFormModal (T14.5)
+// ReviewFormModal (T14.5 + T24.5/T24.6 — Modo Automático/Manual)
 // ---------------------------------------------------------------------------
 
 function ReviewFormModal({
@@ -158,9 +159,18 @@ function ReviewFormModal({
 }) {
   const [name, setName] = useState('');
   const [color, setColor] = useState('#6366f1');
+
+  // Modo automático
   const [startDate, setStartDate] = useState('');
   const [intervalDays, setIntervalDays] = useState(5);
   const [totalReviews, setTotalReviews] = useState(3);
+
+  // Toggle Modo Manual
+  const [isManualMode, setIsManualMode] = useState(false);
+
+  // Datas selecionadas manualmente (modo manual)
+  const [selectedDates, setSelectedDates] = useState<string[]>([]);
+
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -170,20 +180,37 @@ function ReviewFormModal({
     if (editingReview) {
       setName(editingReview.name);
       setColor(editingReview.color);
-      setStartDate(editingReview.startDate);
-      setIntervalDays(editingReview.intervalDays);
-      setTotalReviews(editingReview.totalReviews);
+
+      // Se tem metadados de modo automático e não tem scheduledDates tão diferentes
+      // do que seria gerado, assume modo automático como default
+      const hasAutoMeta = editingReview.startDate && editingReview.intervalDays && editingReview.totalReviews;
+      if (hasAutoMeta) {
+        setStartDate(editingReview.startDate!);
+        setIntervalDays(editingReview.intervalDays!);
+        setTotalReviews(editingReview.totalReviews!);
+        setIsManualMode(false);
+      } else {
+        setStartDate('');
+        setIntervalDays(5);
+        setTotalReviews(editingReview.scheduledDates.length);
+        setIsManualMode(true);
+      }
+
+      setSelectedDates([...editingReview.scheduledDates]);
     } else {
       setName('');
       setColor('#6366f1');
       setStartDate('');
       setIntervalDays(5);
       setTotalReviews(3);
+      setIsManualMode(false);
+      setSelectedDates([]);
     }
     setErrors({});
   }, [editingReview, isOpen]);
 
-  const previewDates = useMemo(() => {
+  // Datas geradas automaticamente
+  const autoDates = useMemo(() => {
     if (!startDate) return [];
     try {
       return generateReviewDates(startDate, intervalDays, totalReviews);
@@ -192,25 +219,48 @@ function ReviewFormModal({
     }
   }, [startDate, intervalDays, totalReviews]);
 
+  // Datas efetivas (dependendo do modo)
+  const effectiveDates = useMemo(() => {
+    return isManualMode ? selectedDates : autoDates;
+  }, [isManualMode, selectedDates, autoDates]);
+
+  const handleToggleMode = () => {
+    if (!isManualMode) {
+      // Mudando para modo manual: pré-carregar datas do automático no DatePicker
+      setSelectedDates([...autoDates]);
+    }
+    setIsManualMode(!isManualMode);
+  };
+
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
     if (!name.trim() || name.trim().length < 2) {
       newErrors.name = 'Nome deve ter pelo menos 2 caracteres.';
     }
-    if (!startDate) {
-      newErrors.startDate = 'Data de início é obrigatória.';
-    } else {
-      const parsed = new Date(startDate + 'T00:00:00');
-      if (isNaN(parsed.getTime())) {
-        newErrors.startDate = 'Data inválida.';
+
+    if (isManualMode) {
+      if (selectedDates.length === 0) {
+        newErrors.scheduledDates = 'Selecione ao menos 1 data de revisão.';
       }
-    }
-    if (!intervalDays || intervalDays < 1) {
-      newErrors.intervalDays = 'Intervalo deve ser pelo menos 1 dia.';
-    }
-    if (!totalReviews || totalReviews < 1 || totalReviews > 365) {
-      newErrors.totalReviews = 'Quantidade deve ser entre 1 e 365.';
+    } else {
+      if (!startDate) {
+        newErrors.startDate = 'Data de início é obrigatória.';
+      } else {
+        const parsed = new Date(startDate + 'T00:00:00');
+        if (isNaN(parsed.getTime())) {
+          newErrors.startDate = 'Data inválida.';
+        }
+      }
+      if (!intervalDays || intervalDays < 1) {
+        newErrors.intervalDays = 'Intervalo deve ser pelo menos 1 dia.';
+      }
+      if (!totalReviews || totalReviews < 1 || totalReviews > 365) {
+        newErrors.totalReviews = 'Quantidade deve ser entre 1 e 365.';
+      }
+      if (autoDates.length === 0 && startDate) {
+        newErrors.startDate = 'Não foi possível gerar datas com esses parâmetros.';
+      }
     }
 
     setErrors(newErrors);
@@ -224,10 +274,15 @@ function ReviewFormModal({
     const input: CreateReviewInput = {
       name: name.trim(),
       color,
-      startDate,
-      intervalDays,
-      totalReviews,
+      scheduledDates: effectiveDates,
     };
+
+    if (!isManualMode) {
+      // Incluir metadados do modo automático
+      input.startDate = startDate;
+      input.intervalDays = intervalDays;
+      input.totalReviews = totalReviews;
+    }
 
     if (isEditing && editingReview) {
       await onUpdate(editingReview.id, input);
@@ -315,84 +370,131 @@ function ReviewFormModal({
             </div>
           </div>
 
-          {/* Data de início */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Data de início *
-            </label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+          {/* Toggle: Modo Automático / Manual */}
+          <div className="flex items-center justify-between rounded-lg bg-gray-50 dark:bg-gray-800 p-3">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {isManualMode ? '🗓️ Selecionar datas manualmente' : '⚙️ Gerar datas automaticamente'}
+            </span>
+            <button
+              type="button"
+              onClick={handleToggleMode}
               className={twMerge(
-                'w-full rounded-lg border px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100',
-                'focus:outline-none focus:ring-2 focus:ring-brand-500',
-                errors.startDate
-                  ? 'border-red-300 dark:border-red-700'
-                  : 'border-gray-300 dark:border-gray-600',
+                'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
+                isManualMode
+                  ? 'bg-brand-600'
+                  : 'bg-gray-300 dark:bg-gray-600',
               )}
-            />
-            {errors.startDate && <p className="mt-1 text-xs text-red-500">{errors.startDate}</p>}
-          </div>
-
-          {/* Intervalo */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Repetir a cada X dias
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min={1}
-                value={intervalDays}
-                onChange={(e) => setIntervalDays(parseInt(e.target.value) || 1)}
+              role="switch"
+              aria-checked={isManualMode}
+              aria-label="Alternar modo manual de seleção de datas"
+            >
+              <span
                 className={twMerge(
-                  'w-24 rounded-lg border px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100',
-                  'focus:outline-none focus:ring-2 focus:ring-brand-500',
-                  errors.intervalDays
-                    ? 'border-red-300 dark:border-red-700'
-                    : 'border-gray-300 dark:border-gray-600',
+                  'inline-block h-4 w-4 rounded-full bg-white transition-transform',
+                  isManualMode ? 'translate-x-6' : 'translate-x-1',
                 )}
               />
-              <span className="text-sm text-gray-500 dark:text-gray-400">dias</span>
+            </button>
+          </div>
+
+          {/* Modo Automático */}
+          {!isManualMode && (
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Data de início *
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className={twMerge(
+                    'w-full rounded-lg border px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100',
+                    'focus:outline-none focus:ring-2 focus:ring-brand-500',
+                    errors.startDate
+                      ? 'border-red-300 dark:border-red-700'
+                      : 'border-gray-300 dark:border-gray-600',
+                  )}
+                />
+                {errors.startDate && <p className="mt-1 text-xs text-red-500">{errors.startDate}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Repetir a cada X dias
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={1}
+                    value={intervalDays}
+                    onChange={(e) => setIntervalDays(parseInt(e.target.value) || 1)}
+                    className={twMerge(
+                      'w-24 rounded-lg border px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100',
+                      'focus:outline-none focus:ring-2 focus:ring-brand-500',
+                      errors.intervalDays
+                        ? 'border-red-300 dark:border-red-700'
+                        : 'border-gray-300 dark:border-gray-600',
+                    )}
+                  />
+                  <span className="text-sm text-gray-500 dark:text-gray-400">dias</span>
+                </div>
+                {errors.intervalDays && (
+                  <p className="mt-1 text-xs text-red-500">{errors.intervalDays}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Quantidade de revisões
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={365}
+                  value={totalReviews}
+                  onChange={(e) => setTotalReviews(parseInt(e.target.value) || 1)}
+                  className={twMerge(
+                    'w-24 rounded-lg border px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100',
+                    'focus:outline-none focus:ring-2 focus:ring-brand-500',
+                    errors.totalReviews
+                      ? 'border-red-300 dark:border-red-700'
+                      : 'border-gray-300 dark:border-gray-600',
+                  )}
+                />
+                {errors.totalReviews && (
+                  <p className="mt-1 text-xs text-red-500">{errors.totalReviews}</p>
+                )}
+              </div>
             </div>
-            {errors.intervalDays && (
-              <p className="mt-1 text-xs text-red-500">{errors.intervalDays}</p>
-            )}
-          </div>
+          )}
 
-          {/* Quantidade */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Quantidade de revisões
-            </label>
-            <input
-              type="number"
-              min={1}
-              max={365}
-              value={totalReviews}
-              onChange={(e) => setTotalReviews(parseInt(e.target.value) || 1)}
-              className={twMerge(
-                'w-24 rounded-lg border px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100',
-                'focus:outline-none focus:ring-2 focus:ring-brand-500',
-                errors.totalReviews
-                  ? 'border-red-300 dark:border-red-700'
-                  : 'border-gray-300 dark:border-gray-600',
+          {/* Modo Manual — DatePicker */}
+          {isManualMode && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Datas da revisão *
+              </label>
+              <DatePicker
+                selectedDates={selectedDates}
+                onChange={setSelectedDates}
+                highlightColor={color}
+                className="border border-gray-200 dark:border-gray-700 rounded-lg p-3"
+              />
+              {errors.scheduledDates && (
+                <p className="mt-1 text-xs text-red-500">{errors.scheduledDates}</p>
               )}
-            />
-            {errors.totalReviews && (
-              <p className="mt-1 text-xs text-red-500">{errors.totalReviews}</p>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* Preview */}
-          {previewDates.length > 0 && (
+          {/* Preview das datas (comum aos dois modos) */}
+          {effectiveDates.length > 0 && (
             <div className="rounded-lg bg-brand-50 dark:bg-brand-900/20 p-3">
               <p className="text-xs font-semibold text-brand-700 dark:text-brand-300 mb-1">
-                Datas geradas ({previewDates.length}):
+                Datas {isManualMode ? 'selecionadas' : 'geradas'} ({effectiveDates.length}):
               </p>
               <p className="text-sm text-brand-600 dark:text-brand-400">
-                {previewDates.map(formatShortDate).join(', ')}
+                {effectiveDates.map(formatShortDate).join(', ')}
               </p>
             </div>
           )}
@@ -548,11 +650,7 @@ export function ReviewListPage() {
       {!loading && !error && reviews.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {reviews.map((review) => {
-            const allDates = generateReviewDates(
-              review.startDate,
-              review.intervalDays,
-              review.totalReviews,
-            );
+            const allDates = review.scheduledDates;
             const today = new Date().toISOString().split('T')[0];
             const futureDates = allDates.filter((d) => d >= today);
             const pastDates = allDates.filter((d) => d < today);
@@ -574,15 +672,25 @@ export function ReviewListPage() {
                     {review.name}
                   </h3>
 
-                  {/* Data de início */}
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                    Início: {formatLongDate(review.startDate)}
-                  </p>
+                  {/* Data de início (primeira data agendada) */}
+                  {allDates.length > 0 && (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                      Início: {formatLongDate(allDates[0])}
+                    </p>
+                  )}
 
                   {/* Badge */}
                   <span className="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-700 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-300">
-                    A cada {review.intervalDays} {review.intervalDays === 1 ? 'dia' : 'dias'} ·{' '}
-                    {review.totalReviews} revis{review.totalReviews === 1 ? 'ão' : 'ões'}
+                    {review.intervalDays !== undefined && review.totalReviews !== undefined ? (
+                      <>
+                        A cada {review.intervalDays} {review.intervalDays === 1 ? 'dia' : 'dias'} ·{' '}
+                        {review.totalReviews} revis{review.totalReviews === 1 ? 'ão' : 'ões'}
+                      </>
+                    ) : (
+                      <>
+                        {allDates.length} revis{allDates.length === 1 ? 'ão' : 'ões'} manuais
+                      </>
+                    )}
                   </span>
 
                   {/* Preview próximas datas */}

@@ -5,7 +5,6 @@ import { useAuth } from '../../hooks/useAuth';
 import { useReviewQuestionnaire } from '../../hooks/useReviewQuestionnaire';
 import { Button } from '../../components/ui/Button';
 import { container } from '../../../di/container';
-import { generateReviewDates } from '../../../core/entities/Review';
 import type { Review } from '../../../core/entities/Review';
 import type { ReviewQuestionnaire } from '../../../core/entities/ReviewQuestionnaire';
 
@@ -249,9 +248,10 @@ export function ReviewDetailPage() {
     fetchReview();
   }, [fetchReview]);
 
+  // Usar scheduledDates diretamente (fonte da verdade)
   const reviewDates = useMemo(() => {
     if (!review) return [];
-    return generateReviewDates(review.startDate, review.intervalDays, review.totalReviews);
+    return review.scheduledDates;
   }, [review]);
 
   const questionnaireMap = useMemo(() => {
@@ -334,11 +334,17 @@ export function ReviewDetailPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{review.name}</h1>
         </div>
         <div className="text-sm text-gray-500 dark:text-gray-400 space-y-1">
-          <p>Início: {formatLongDate(review.startDate)}</p>
-          <p>
-            A cada {review.intervalDays} {review.intervalDays === 1 ? 'dia' : 'dias'} ·{' '}
-            {review.totalReviews} revis{review.totalReviews === 1 ? 'ão' : 'ões'}
-          </p>
+          {reviewDates.length > 0 && <p>Início: {formatLongDate(reviewDates[0])}</p>}
+          {review.intervalDays !== undefined && review.totalReviews !== undefined ? (
+            <p>
+              A cada {review.intervalDays} {review.intervalDays === 1 ? 'dia' : 'dias'} ·{' '}
+              {review.totalReviews} revis{review.totalReviews === 1 ? 'ão' : 'ões'}
+            </p>
+          ) : (
+            <p>
+              {reviewDates.length} revis{reviewDates.length === 1 ? 'ão' : 'ões'} manuais
+            </p>
+          )}
         </div>
       </div>
 
