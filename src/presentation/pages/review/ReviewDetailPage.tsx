@@ -332,6 +332,11 @@ export function ReviewDetailPage() {
             style={{ backgroundColor: review.color }}
           />
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{review.name}</h1>
+          {review.isShared && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 dark:bg-purple-800/50 px-2 py-0.5 text-xs font-medium text-purple-700 dark:text-purple-300">
+              👥 Compartilhado
+            </span>
+          )}
         </div>
         <div className="text-sm text-gray-500 dark:text-gray-400 space-y-1">
           {reviewDates.length > 0 && <p>Início: {formatLongDate(reviewDates[0])}</p>}

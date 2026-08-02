@@ -15,3 +15,4 @@ export { generateReviewDates, filterReviewDatesInRange } from './Review';
 export type { ReviewQuestionnaire, CreateQuestionnaireInput } from './ReviewQuestionnaire';
 export { calculateAccuracy } from './ReviewQuestionnaire';
 export type { SharedTopic, CreateSharedTopicInput } from './SharedTopic';
+export type { SharedReview, CreateSharedReviewInput } from './SharedReview';

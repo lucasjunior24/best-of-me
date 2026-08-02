@@ -56,6 +56,30 @@
         { "fieldPath": "topicId", "order": "ASCENDING" },
         { "fieldPath": "sharedWithUserId", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "sharedReviews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "sharedWithUserId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "sharedReviews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "reviewId", "order": "ASCENDING" },
+        { "fieldPath": "sharedWithUserId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "sharedReviews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "sharedWithEmail", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

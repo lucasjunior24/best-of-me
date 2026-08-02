@@ -7,7 +7,7 @@
   <img src="https://img.shields.io/badge/Firebase-10.12-%23FFCA28?logo=firebase" alt="Firebase" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-3.4-%2306B6D4?logo=tailwindcss" alt="Tailwind CSS" />
   <img src="https://img.shields.io/badge/Vite-5.3-%23646CFF?logo=vite" alt="Vite" />
-<img src="https://img.shields.io/badge/Sprints-188%2F222-%23F59E0B" alt="Progress" />
+<img src="https://img.shields.io/badge/Sprints-197%2F222-%23F59E0B" alt="Progress" />
 </p>
 
 <p align="center">
@@ -28,13 +28,12 @@ Recursos principais:
 - 🔁 Módulo de Revisões com questionários de autoavaliação (good/easy/again) e spaced repetition
 - 📈 Métricas de revisões: taxa de acerto, distribuição, calendário
 - 👥 **Compartilhamento de Temas** — convide usuários por e-mail para visualizar/editar temas
+- 👥 **Compartilhamento de Revisões** — convide usuários para revisões compartilhadas, cada um com seus questionários
 - 🕐 Input de horas no formato HH:MM
 - 🌗 **Dark Mode** com persistência híbrida (localStorage + Firestore)
 - 🔄 Atualizações otimistas (toggle de conclusão)
 - 📱 Responsivo (mobile-first com Tailwind)
 - ♿ Acessibilidade com roles ARIA e navegação por teclado
-- 🗓️ **DatePicker em Revisões** — seleção manual de múltiplas datas para revisões *(planejado)*
-- 👥 **Compartilhamento de Revisões** — convide usuários para revisões compartilhadas *(planejado)*
 - 📊 **Desempenho Cruzado** — visualize o progresso de ambos em itens compartilhados *(planejado)*
 - 🏠 **Calendário na Home** — calendário unificado como tela principal *(planejado)*
 - ✏️ **Edição Completa** — edite tudo (inclusive datas) em estudos e revisões compartilhados *(planejado)*
@@ -267,11 +266,11 @@ O projeto segue os princípios da **Clean Architecture**:
 | Sprint 21 — Core Compartilhamento | ✅ Concluída | 8/8 |
 | **Sprint 22 — Firebase+UI Compartilhamento** | **✅ Concluída** | **10/10** |
 | Sprint 23 — Comentários/Anotações | ✅ Concluída | 5/5 |
-| Sprint 24 — DatePicker Revisões | ⬜ Planejada | 0/10 |
-| Sprint 25 — Compartilhamento Revisões | ⬜ Planejada | 0/9 |
+| Sprint 24 — DatePicker Revisões | ✅ Concluída | 10/10 |
+| Sprint 25 — Compartilhamento Revisões | ✅ Concluída | 9/9 |
 | Sprint 26 — Desempenho Cruzado | ⬜ Planejada | 0/7 |
 | Sprint 27 — Calendário Home + Edição + Nav | ⬜ Planejada | 0/9 |
-| **TOTAL** | | **188/222** |
+| **TOTAL** | | **197/222** |
 
 ---
 

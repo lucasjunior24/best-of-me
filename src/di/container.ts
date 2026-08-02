@@ -3,6 +3,7 @@ import { FirebaseStudyRepository } from '../adapters/firebase/FirebaseStudyRepos
 import { FirebaseReviewRepository } from '../adapters/firebase/FirebaseReviewRepository';
 import { FirebaseAuthRepository } from '../adapters/firebase/FirebaseAuthRepository';
 import { FirebaseSharingRepository } from '../adapters/firebase/FirebaseSharingRepository';
+import { FirebaseReviewSharingRepository } from '../adapters/firebase/FirebaseReviewSharingRepository';
 import { CreateStudyTopicUseCase } from '../core/useCases/CreateStudyTopicUseCase';
 import { UpdateStudyTopicUseCase } from '../core/useCases/UpdateStudyTopicUseCase';
 import { DeleteStudyTopicUseCase } from '../core/useCases/DeleteStudyTopicUseCase';
@@ -18,16 +19,21 @@ import { DeleteReviewUseCase } from '../core/useCases/DeleteReviewUseCase';
 import { CreateOrUpdateQuestionnaireUseCase } from '../core/useCases/CreateOrUpdateQuestionnaireUseCase';
 import { GetReviewCalendarUseCase } from '../core/useCases/GetReviewCalendarUseCase';
 import { GetReviewStatsUseCase } from '../core/useCases/GetReviewStatsUseCase';
-// Sharing use cases
+// Sharing use cases (Study Topics)
 import { ShareTopicUseCase } from '../core/useCases/ShareTopicUseCase';
 import { GetPendingInvitationsUseCase } from '../core/useCases/GetPendingInvitationsUseCase';
 import { AcceptInvitationUseCase } from '../core/useCases/AcceptInvitationUseCase';
+// Sharing use cases (Reviews)
+import { ShareReviewUseCase } from '../core/useCases/ShareReviewUseCase';
+import { GetPendingReviewInvitationsUseCase } from '../core/useCases/GetPendingReviewInvitationsUseCase';
+import { AcceptReviewInvitationUseCase } from '../core/useCases/AcceptReviewInvitationUseCase';
 
 const toastService = new HotToastService();
 const studyRepository = new FirebaseStudyRepository();
 const reviewRepository = new FirebaseReviewRepository();
 const authRepository = new FirebaseAuthRepository();
 const sharingRepository = new FirebaseSharingRepository();
+const reviewSharingRepository = new FirebaseReviewSharingRepository();
 
 const useCases = {
   // Study use cases
@@ -53,7 +59,7 @@ const useCases = {
   getReviewCalendar: new GetReviewCalendarUseCase(reviewRepository),
   getReviewStats: new GetReviewStatsUseCase(reviewRepository),
 
-  // Sharing use cases (Sprint 22)
+  // Sharing use cases (Sprint 22 - Study Topics)
   shareTopic: new ShareTopicUseCase(
     sharingRepository,
     studyRepository,
@@ -62,6 +68,23 @@ const useCases = {
   ),
   getPendingInvitations: new GetPendingInvitationsUseCase(sharingRepository, studyRepository),
   acceptInvitation: new AcceptInvitationUseCase(sharingRepository, studyRepository, toastService),
+
+  // Sharing use cases (Sprint 25 - Reviews)
+  shareReview: new ShareReviewUseCase(
+    reviewSharingRepository,
+    reviewRepository,
+    authRepository,
+    toastService,
+  ),
+  getPendingReviewInvitations: new GetPendingReviewInvitationsUseCase(
+    reviewSharingRepository,
+    reviewRepository,
+  ),
+  acceptReviewInvitation: new AcceptReviewInvitationUseCase(
+    reviewSharingRepository,
+    reviewRepository,
+    toastService,
+  ),
 };
 
 const container = {
@@ -70,6 +93,7 @@ const container = {
   reviewRepository,
   authRepository,
   sharingRepository,
+  reviewSharingRepository,
   useCases,
 };
 

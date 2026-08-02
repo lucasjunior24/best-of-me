@@ -9,6 +9,12 @@ export interface Review {
   startDate?: string;
   intervalDays?: number;
   totalReviews?: number;
+  /** IDs dos usuários com quem a revisão foi compartilhada */
+  sharedWith?: string[];
+  /** Indica se esta revisão foi recebida via compartilhamento */
+  isShared?: boolean;
+  /** ID do dono original (para revisões recebidas via compartilhamento) */
+  ownerUserId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -24,7 +30,10 @@ export type CreateReviewInput = {
   totalReviews?: number;
 };
 
-export type UpdateReviewInput = Partial<CreateReviewInput>;
+export type UpdateReviewInput = Partial<CreateReviewInput> & {
+  /** Atualizar lista de usuários compartilhados (usado pelo AcceptReviewInvitationUseCase) */
+  sharedWith?: string[];
+};
 
 /**
  * Gera as datas de revisão com base nos parâmetros do Review (modo automático).

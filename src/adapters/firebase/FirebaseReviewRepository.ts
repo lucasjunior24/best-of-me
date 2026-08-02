@@ -66,6 +66,9 @@ function reviewFromDoc(snapshot: QueryDocumentSnapshot<DocumentData>): Review {
     startDate: data.startDate ?? undefined,
     intervalDays: data.intervalDays ?? undefined,
     totalReviews: data.totalReviews ?? undefined,
+    sharedWith: data.sharedWith ?? undefined,
+    isShared: data.isShared ?? undefined,
+    ownerUserId: data.ownerUserId ?? undefined,
     createdAt: parseTimestamp(data.createdAt as Timestamp),
     updatedAt: parseTimestamp(data.updatedAt as Timestamp),
   };
@@ -118,6 +121,7 @@ export class FirebaseReviewRepository implements IReviewRepository {
     if (review.startDate !== undefined) docData.startDate = review.startDate;
     if (review.intervalDays !== undefined) docData.intervalDays = review.intervalDays;
     if (review.totalReviews !== undefined) docData.totalReviews = review.totalReviews;
+    if (review.sharedWith !== undefined) docData.sharedWith = review.sharedWith;
 
     const docRef = doc(this.reviewsCollection(review.userId), id);
     await setDoc(docRef, docData);
@@ -153,6 +157,7 @@ export class FirebaseReviewRepository implements IReviewRepository {
     if (data.startDate !== undefined) updatePayload.startDate = data.startDate;
     if (data.intervalDays !== undefined) updatePayload.intervalDays = data.intervalDays;
     if (data.totalReviews !== undefined) updatePayload.totalReviews = data.totalReviews;
+    if (data.sharedWith !== undefined) updatePayload.sharedWith = data.sharedWith;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await updateDoc(docRef, updatePayload as any);

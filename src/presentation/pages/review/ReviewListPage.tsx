@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { twMerge } from 'tailwind-merge';
 import { useAuth } from '../../hooks/useAuth';
 import { useReviews } from '../../hooks/useReviews';
+import { useReviewSharing } from '../../hooks/useReviewSharing';
 import { Button } from '../../components/ui/Button';
 import { DatePicker } from '../../components/ui/DatePicker';
 import { generateReviewDates } from '../../../core/entities/Review';
@@ -183,7 +184,8 @@ function ReviewFormModal({
 
       // Se tem metadados de modo automático e não tem scheduledDates tão diferentes
       // do que seria gerado, assume modo automático como default
-      const hasAutoMeta = editingReview.startDate && editingReview.intervalDays && editingReview.totalReviews;
+      const hasAutoMeta =
+        editingReview.startDate && editingReview.intervalDays && editingReview.totalReviews;
       if (hasAutoMeta) {
         setStartDate(editingReview.startDate!);
         setIntervalDays(editingReview.intervalDays!);
@@ -380,9 +382,7 @@ function ReviewFormModal({
               onClick={handleToggleMode}
               className={twMerge(
                 'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-                isManualMode
-                  ? 'bg-brand-600'
-                  : 'bg-gray-300 dark:bg-gray-600',
+                isManualMode ? 'bg-brand-600' : 'bg-gray-300 dark:bg-gray-600',
               )}
               role="switch"
               aria-checked={isManualMode}
@@ -416,7 +416,9 @@ function ReviewFormModal({
                       : 'border-gray-300 dark:border-gray-600',
                   )}
                 />
-                {errors.startDate && <p className="mt-1 text-xs text-red-500">{errors.startDate}</p>}
+                {errors.startDate && (
+                  <p className="mt-1 text-xs text-red-500">{errors.startDate}</p>
+                )}
               </div>
 
               <div>
@@ -567,6 +569,136 @@ function ConfirmDeleteModal({
 }
 
 // ---------------------------------------------------------------------------
+// ShareReviewModal
+// ---------------------------------------------------------------------------
+
+function ShareReviewModal({
+  isOpen,
+  onClose,
+  onShare,
+  reviewName,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onShare: (email: string, permission: 'edit' | 'view') => Promise<boolean>;
+  reviewName: string;
+}) {
+  const [email, setEmail] = useState('');
+  const [permission, setPermission] = useState<'edit' | 'view'>('edit');
+  const [sharing, setSharing] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setEmail('');
+      setPermission('edit');
+      setError('');
+    }
+  }, [isOpen]);
+
+  const handleShare = async () => {
+    if (!email.trim()) {
+      setError('Digite um e-mail.');
+      return;
+    }
+    setSharing(true);
+    setError('');
+    const success = await onShare(email.trim(), permission);
+    setSharing(false);
+    if (success) {
+      onClose();
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-sm w-full"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Compartilhar Revisão
+          </h3>
+          <button
+            onClick={onClose}
+            className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            aria-label="Fechar"
+          >
+            <svg
+              className="w-5 h-5 text-gray-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+        <div className="p-4 space-y-4">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Compartilhe <strong>"{reviewName}"</strong> com outro usuário. O tema (nome, cor, datas)
+            será compartilhado, mas cada um terá seus próprios questionários.
+          </p>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              E-mail do usuário
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="exemplo@gmail.com"
+              className={twMerge(
+                'w-full rounded-lg border px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100',
+                'focus:outline-none focus:ring-2 focus:ring-brand-500',
+                error
+                  ? 'border-red-300 dark:border-red-700'
+                  : 'border-gray-300 dark:border-gray-600',
+              )}
+            />
+            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Permissão
+            </label>
+            <select
+              value={permission}
+              onChange={(e) => setPermission(e.target.value as 'edit' | 'view')}
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            >
+              <option value="edit">Pode editar</option>
+              <option value="view">Apenas visualizar</option>
+            </select>
+          </div>
+        </div>
+        <div className="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button onClick={handleShare} loading={sharing}>
+            Compartilhar
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // ReviewListPage
 // ---------------------------------------------------------------------------
 
@@ -575,11 +707,20 @@ export function ReviewListPage() {
   const { user } = useAuth();
   const { reviews, loading, error, loadReviews, createReview, updateReview, deleteReview } =
     useReviews();
+  const {
+    pendingInvitations,
+    invitationsLoading,
+    loadInvitations,
+    shareReview,
+    acceptInvitation,
+    rejectInvitation,
+  } = useReviewSharing();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingReview, setEditingReview] = useState<Review | null>(null);
   const [deletingReview, setDeletingReview] = useState<Review | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [sharingReview, setSharingReview] = useState<Review | null>(null);
 
   const fetchReviews = useCallback(() => {
     if (user) {
@@ -587,9 +728,19 @@ export function ReviewListPage() {
     }
   }, [user, loadReviews]);
 
+  const fetchInvitations = useCallback(() => {
+    if (user?.email) {
+      loadInvitations(user.email);
+    }
+  }, [user, loadInvitations]);
+
   useEffect(() => {
     fetchReviews();
   }, [fetchReviews]);
+
+  useEffect(() => {
+    fetchInvitations();
+  }, [fetchInvitations]);
 
   const handleOpenCreate = () => {
     setEditingReview(null);
@@ -613,6 +764,28 @@ export function ReviewListPage() {
     setDeletingReview(null);
   };
 
+  const handleShareClick = (review: Review) => {
+    setSharingReview(review);
+  };
+
+  const handleShareSubmit = async (email: string, permission: 'edit' | 'view') => {
+    if (!sharingReview || !user) return false;
+    const result = await shareReview(sharingReview.id, user.id, email, permission);
+    return result !== null;
+  };
+
+  const handleAcceptInvitation = async (sharedId: string) => {
+    if (!user?.email) return;
+    const success = await acceptInvitation(sharedId, user.email, user.id);
+    if (success) {
+      fetchReviews();
+    }
+  };
+
+  const handleRejectInvitation = async (sharedId: string) => {
+    await rejectInvitation(sharedId);
+  };
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Header */}
@@ -631,6 +804,44 @@ export function ReviewListPage() {
         </div>
       </div>
 
+      {/* Pending Invitations */}
+      {!invitationsLoading && pendingInvitations.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+            📨 Convites Pendentes ({pendingInvitations.length})
+          </h2>
+          <div className="space-y-3">
+            {pendingInvitations.map((invite) => (
+              <div
+                key={invite.id}
+                className="flex items-center justify-between rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4"
+              >
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {invite.review?.name ?? 'Revisão'}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Convite de {invite.ownerEmail}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" onClick={() => handleAcceptInvitation(invite.id)}>
+                    Aceitar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleRejectInvitation(invite.id)}
+                  >
+                    Recusar
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Loading State */}
       {loading && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -644,7 +855,9 @@ export function ReviewListPage() {
       {!loading && error && <ErrorState message={error} onRetry={fetchReviews} />}
 
       {/* Empty State */}
-      {!loading && !error && reviews.length === 0 && <EmptyState onCreate={handleOpenCreate} />}
+      {!loading && !error && reviews.length === 0 && pendingInvitations.length === 0 && (
+        <EmptyState onCreate={handleOpenCreate} />
+      )}
 
       {/* Review Cards Grid */}
       {!loading && !error && reviews.length > 0 && (
@@ -654,11 +867,17 @@ export function ReviewListPage() {
             const today = new Date().toISOString().split('T')[0];
             const futureDates = allDates.filter((d) => d >= today);
             const pastDates = allDates.filter((d) => d < today);
+            const isShared = review.isShared;
 
             return (
               <div
                 key={review.id}
-                className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
+                className={twMerge(
+                  'group relative overflow-hidden rounded-2xl border p-5 shadow-sm transition-shadow hover:shadow-md',
+                  isShared
+                    ? 'border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-900/10'
+                    : 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800',
+                )}
               >
                 {/* Color bar */}
                 <div
@@ -667,6 +886,13 @@ export function ReviewListPage() {
                 />
 
                 <div className="ml-2">
+                  {/* Shared Badge */}
+                  {isShared && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 dark:bg-purple-800/50 px-2 py-0.5 text-xs font-medium text-purple-700 dark:text-purple-300 mb-2">
+                      👥 Compartilhado
+                    </span>
+                  )}
+
                   {/* Nome */}
                   <h3 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
                     {review.name}
@@ -731,6 +957,28 @@ export function ReviewListPage() {
 
                 {/* Actions (visible on hover) */}
                 <div className="absolute right-3 top-3 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                  {!isShared && (
+                    <button
+                      type="button"
+                      onClick={() => handleShareClick(review)}
+                      className="rounded-lg p-1.5 text-gray-400 hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-900/30 dark:hover:text-brand-400"
+                      aria-label={`Compartilhar ${review.name}`}
+                    >
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z"
+                        />
+                      </svg>
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => handleOpenEdit(review)}
@@ -805,6 +1053,14 @@ export function ReviewListPage() {
         onConfirm={handleDeleteConfirm}
         reviewName={deletingReview?.name || ''}
         loading={deleteLoading}
+      />
+
+      {/* Share Modal */}
+      <ShareReviewModal
+        isOpen={!!sharingReview}
+        onClose={() => setSharingReview(null)}
+        onShare={handleShareSubmit}
+        reviewName={sharingReview?.name || ''}
       />
     </div>
   );
