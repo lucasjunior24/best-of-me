@@ -17,8 +17,9 @@ service cloud.firestore {
       }
 
       match /sessions/{sessionId} {
+        // Dono da session pode ler/escrever
         allow read, write: if request.auth != null && request.auth.uid == userId;
-        // Permitir leitura para usuários que têm o tema compartilhado (via sharedWith no tópico)
+        // Permitir leitura para usuários que têm o tema compartilhado (Sprint 26 — cross-user visibility)
         allow read: if request.auth != null && exists(
           /databases/$(database)/documents/users/$(userId)/topics/$(resource.data.topicId)
         ) && request.auth.uid in get(

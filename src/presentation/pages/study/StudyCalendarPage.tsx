@@ -498,60 +498,92 @@ export function StudyCalendarPage() {
                     📚 Estudos
                   </h4>
                   <div className="space-y-2">
-                    {selectedDay.studySessions.map((session) => (
-                      <div
-                        key={session.sessionId}
-                        className={twMerge(
-                          'flex items-start gap-3 p-3 rounded-lg border transition-colors',
-                          session.completed
-                            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-                            : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700',
-                        )}
-                      >
+                    {selectedDay.studySessions.map((session) => {
+                      const isOwnSession = !session.userId || session.userId === user?.id;
+                      return (
                         <div
-                          className="w-3 h-3 rounded-full flex-shrink-0 mt-1.5"
-                          style={{ backgroundColor: session.topicColor }}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {session.topicName}
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {formatHours(session.hoursPerDay)}/dia
-                          </p>
-                          {session.completed && session.completedAt && (
-                            <p className="text-xs text-green-600 dark:text-green-400 mt-0.5">
-                              Concluído em {formatDateTime(session.completedAt)}
-                            </p>
-                          )}
-                          {/* Anotações da sessão */}
-                          <NotesEditor
-                            sessionId={session.sessionId}
-                            initialNotes={session.notes ?? ''}
-                            topicName={session.topicName}
-                            onSave={updateSessionNotes}
-                          />
-                        </div>
-                        <button
-                          onClick={() => toggleSession(session.sessionId)}
+                          key={`${session.sessionId}-${session.userId ?? user?.id}`}
                           className={twMerge(
-                            'relative inline-flex h-6 w-11 items-center rounded-full flex-shrink-0 mt-1',
-                            'transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2',
-                            session.completed ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600',
+                            'flex items-start gap-3 p-3 rounded-lg border transition-colors',
+                            session.completed
+                              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                              : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700',
                           )}
-                          role="switch"
-                          aria-checked={session.completed}
-                          aria-label={`Marcar ${session.topicName} como ${session.completed ? 'não concluído' : 'concluído'}`}
                         >
-                          <span
-                            className={twMerge(
-                              'inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform',
-                              session.completed ? 'translate-x-6' : 'translate-x-1',
-                            )}
+                          <div
+                            className="w-3 h-3 rounded-full flex-shrink-0 mt-1.5"
+                            style={{ backgroundColor: session.topicColor }}
                           />
-                        </button>
-                      </div>
-                    ))}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {session.topicName}
+                              </p>
+                              {/* T26.2: Indicador de quem é a atividade */}
+                              {!isOwnSession && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:text-blue-300">
+                                  👤 Outro
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {formatHours(session.hoursPerDay)}/dia
+                            </p>
+                            {session.completed && session.completedAt && (
+                              <p className="text-xs text-green-600 dark:text-green-400 mt-0.5">
+                                Concluído em {formatDateTime(session.completedAt)}
+                              </p>
+                            )}
+                            {!session.completed && !isOwnSession && (
+                              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                                Pendente
+                              </p>
+                            )}
+                            {/* Anotações da sessão (apenas para sessões próprias) */}
+                            {isOwnSession && (
+                              <NotesEditor
+                                sessionId={session.sessionId}
+                                initialNotes={session.notes ?? ''}
+                                topicName={session.topicName}
+                                onSave={updateSessionNotes}
+                              />
+                            )}
+                          </div>
+                          {/* Toggle apenas para sessões próprias */}
+                          {isOwnSession ? (
+                            <button
+                              onClick={() => toggleSession(session.sessionId)}
+                              className={twMerge(
+                                'relative inline-flex h-6 w-11 items-center rounded-full flex-shrink-0 mt-1',
+                                'transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2',
+                                session.completed ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600',
+                              )}
+                              role="switch"
+                              aria-checked={session.completed}
+                              aria-label={`Marcar ${session.topicName} como ${session.completed ? 'não concluído' : 'concluído'}`}
+                            >
+                              <span
+                                className={twMerge(
+                                  'inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform',
+                                  session.completed ? 'translate-x-6' : 'translate-x-1',
+                                )}
+                              />
+                            </button>
+                          ) : (
+                            <span
+                              className={twMerge(
+                                'inline-flex items-center justify-center h-6 w-11 rounded-full flex-shrink-0 mt-1 text-xs font-medium',
+                                session.completed
+                                  ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
+                                  : 'bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-400',
+                              )}
+                            >
+                              {session.completed ? '✓' : '—'}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -563,37 +595,56 @@ export function StudyCalendarPage() {
                     📝 Revisões
                   </h4>
                   <div className="space-y-2">
-                    {selectedDay.reviewSessions.map((review) => (
-                      <div
-                        key={`${review.reviewId}-${review.date}`}
-                        className={twMerge(
-                          'flex items-center gap-3 p-3 rounded-lg border transition-colors',
-                          review.completed
-                            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-                            : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700',
-                        )}
-                      >
+                    {selectedDay.reviewSessions.map((review) => {
+                      const isOwnReview = !review.userId || review.userId === user?.id;
+                      return (
                         <div
-                          className="w-3 h-3 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: review.reviewColor }}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {review.reviewName}
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {review.reviewNumber}ª revisão
-                          </p>
-                          {review.questionnaire && (
-                            <p className="text-xs text-green-600 dark:text-green-400 mt-0.5">
-                              {review.questionnaire.correctAnswers}/
-                              {review.questionnaire.totalQuestions} acertos (
-                              {review.questionnaire.accuracy}%)
-                            </p>
+                          key={`${review.reviewId}-${review.date}-${review.userId ?? user?.id}`}
+                          className={twMerge(
+                            'flex items-center gap-3 p-3 rounded-lg border transition-colors',
+                            review.completed
+                              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                              : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700',
                           )}
+                        >
+                          <div
+                            className="w-3 h-3 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: review.reviewColor }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {review.reviewName}
+                              </p>
+                              {/* T26.2: Indicador de quem é a revisão */}
+                              {!isOwnReview && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:text-blue-300">
+                                  👤 Outro
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {review.reviewNumber}ª revisão
+                            </p>
+                            {review.questionnaire && (
+                              <p className="text-xs text-green-600 dark:text-green-400 mt-0.5">
+                                {review.questionnaire.userEmail
+                                  ? `${review.questionnaire.userEmail}: `
+                                  : ''}
+                                {review.questionnaire.correctAnswers}/
+                                {review.questionnaire.totalQuestions} acertos (
+                                {review.questionnaire.accuracy}%)
+                              </p>
+                            )}
+                            {!review.completed && !isOwnReview && (
+                              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                                Pendente
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

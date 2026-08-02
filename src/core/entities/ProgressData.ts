@@ -27,6 +27,8 @@ export interface CalendarDay {
     completedAt?: Date;
     hoursPerDay: number;
     notes?: string;
+    /** ID do usuário dono desta sessão (para desempenho cruzado em itens compartilhados) */
+    userId?: string;
   }>;
   allCompleted: boolean;
   anyCompleted: boolean;
@@ -46,8 +48,12 @@ export interface ReviewSessionCalendarData {
     totalQuestions: number;
     correctAnswers: number;
     accuracy: number;
+    userId?: string;
+    userEmail?: string;
   };
   completed: boolean;
+  /** ID do usuário dono desta sessão de revisão (para desempenho cruzado) */
+  userId?: string;
 }
 
 /**

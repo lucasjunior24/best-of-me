@@ -374,6 +374,7 @@ export function StudyTopicsPage() {
     loading,
     error,
     topicProgressMap,
+    otherUserProgressMap,
     loadTopics,
     createTopic,
     updateTopic,
@@ -647,6 +648,32 @@ export function StudyTopicsPage() {
                       size="sm"
                     />
                   </div>
+
+                  {/* T26.4 — Desempenho do outro usuário em temas compartilhados */}
+                  {(() => {
+                    const otherProgress = otherUserProgressMap.get(topic.id);
+                    if (!otherProgress || otherProgress.length === 0) return null;
+                    return (
+                      <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 space-y-1.5">
+                        {otherProgress.map((op) => (
+                          <div key={op.userId} className="space-y-1">
+                            <div className="flex items-center justify-between text-[11px] text-gray-400 dark:text-gray-500">
+                              <span className="flex items-center gap-1">👤 {op.email}</span>
+                              <span>
+                                {op.completedSessions}/{op.totalSessions} dias
+                              </span>
+                            </div>
+                            <ProgressBar
+                              value={op.percentage}
+                              color="#94a3b8"
+                              variant="horizontal"
+                              size="sm"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Actions (visible on hover) */}

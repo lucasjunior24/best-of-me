@@ -225,6 +225,12 @@ export function ReviewDetailPage() {
     null,
   );
 
+  // T26.5 — Questionários do outro usuário em revisões compartilhadas
+  const [otherUserQuestionnaires, setOtherUserQuestionnaires] = useState<{
+    email: string;
+    questionnaires: ReviewQuestionnaire[];
+  } | null>(null);
+
   const fetchReview = useCallback(async () => {
     if (!reviewId || !user) return;
     setPageLoading(true);
@@ -236,6 +242,35 @@ export function ReviewDetailPage() {
       } else {
         setReview(result);
         await loadQuestionnaires(user.id, reviewId);
+
+        // T26.5 — Buscar questionários do outro usuário em revisões compartilhadas
+        if (result.isShared) {
+          const otherUserId =
+            result.ownerUserId && result.ownerUserId !== user.id
+              ? result.ownerUserId
+              : result.sharedWith?.find((id) => id !== user.id);
+
+          if (otherUserId) {
+            try {
+              const otherQuestionnaires =
+                await container.reviewRepository.getQuestionnairesByReview(reviewId);
+              // Filtrar apenas questionários do outro usuário
+              const otherQs = otherQuestionnaires.filter((q) => q.userId === otherUserId);
+              if (otherQs.length > 0) {
+                let email = otherUserId;
+                try {
+                  const resolved = await container.sharingRepository.getUserEmail(otherUserId);
+                  if (resolved) email = resolved;
+                } catch {
+                  // usar userId como fallback
+                }
+                setOtherUserQuestionnaires({ email, questionnaires: otherQs });
+              }
+            } catch {
+              // Ignorar erro
+            }
+          }
+        }
       }
     } catch (err) {
       setPageError('Erro ao carregar dados da revisão.');
@@ -261,6 +296,17 @@ export function ReviewDetailPage() {
     }
     return map;
   }, [questionnaires]);
+
+  // T26.5 — Mapa de questionários do outro usuário por data
+  const otherQuestionnaireMap = useMemo(() => {
+    const map = new Map<string, ReviewQuestionnaire>();
+    if (otherUserQuestionnaires) {
+      for (const q of otherUserQuestionnaires.questionnaires) {
+        map.set(q.date, q);
+      }
+    }
+    return map;
+  }, [otherUserQuestionnaires]);
 
   const completedCount = questionnaires.length;
   const totalCount = reviewDates.length;
@@ -452,6 +498,23 @@ export function ReviewDetailPage() {
                       </button>
                     </div>
                   )}
+
+                  {/* T26.5 — Desempenho do outro usuário na mesma data */}
+                  {(() => {
+                    const otherQ = otherQuestionnaireMap.get(date);
+                    if (!otherQ || !otherUserQuestionnaires) return null;
+                    return (
+                      <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                        <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
+                          👤 {otherUserQuestionnaires.email}
+                        </p>
+                        <p className="text-sm text-blue-600 dark:text-blue-400 mt-0.5">
+                          {otherQ.correctAnswers}/{otherQ.totalQuestions} acertos ·{' '}
+                          {Math.round((otherQ.correctAnswers / otherQ.totalQuestions) * 100)}%
+                        </p>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             );

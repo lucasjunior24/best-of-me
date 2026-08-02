@@ -47,6 +47,7 @@ const useCases = {
     studyRepository,
     reviewRepository,
     sharingRepository,
+    reviewSharingRepository,
   ),
   getStudyProgress: new GetStudyProgressUseCase(studyRepository),
   updateSessionNotes: new UpdateSessionNotesUseCase(studyRepository, toastService),

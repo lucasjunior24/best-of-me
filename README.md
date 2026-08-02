@@ -7,7 +7,7 @@
   <img src="https://img.shields.io/badge/Firebase-10.12-%23FFCA28?logo=firebase" alt="Firebase" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-3.4-%2306B6D4?logo=tailwindcss" alt="Tailwind CSS" />
   <img src="https://img.shields.io/badge/Vite-5.3-%23646CFF?logo=vite" alt="Vite" />
-<img src="https://img.shields.io/badge/Sprints-197%2F222-%23F59E0B" alt="Progress" />
+<img src="https://img.shields.io/badge/Sprints-214%2F222-%23F59E0B" alt="Progress" />
 </p>
 
 <p align="center">
@@ -34,7 +34,7 @@ Recursos principais:
 - 🔄 Atualizações otimistas (toggle de conclusão)
 - 📱 Responsivo (mobile-first com Tailwind)
 - ♿ Acessibilidade com roles ARIA e navegação por teclado
-- 📊 **Desempenho Cruzado** — visualize o progresso de ambos em itens compartilhados *(planejado)*
+- 📊 **Desempenho Cruzado** — visualize o progresso de ambos em itens compartilhados
 - 🏠 **Calendário na Home** — calendário unificado como tela principal *(planejado)*
 - ✏️ **Edição Completa** — edite tudo (inclusive datas) em estudos e revisões compartilhados *(planejado)*
 - 🔙 **Navegação Global** — botão Voltar em todas as telas *(planejado)*
@@ -268,9 +268,9 @@ O projeto segue os princípios da **Clean Architecture**:
 | Sprint 23 — Comentários/Anotações | ✅ Concluída | 5/5 |
 | Sprint 24 — DatePicker Revisões | ✅ Concluída | 10/10 |
 | Sprint 25 — Compartilhamento Revisões | ✅ Concluída | 9/9 |
-| Sprint 26 — Desempenho Cruzado | ⬜ Planejada | 0/7 |
+| Sprint 26 — Desempenho Cruzado | ✅ Concluída | 7/7 |
 | Sprint 27 — Calendário Home + Edição + Nav | ⬜ Planejada | 0/9 |
-| **TOTAL** | | **197/222** |
+| **TOTAL** | | **214/222** |
 
 ---
 
