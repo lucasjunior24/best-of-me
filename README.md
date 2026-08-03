@@ -7,7 +7,7 @@
   <img src="https://img.shields.io/badge/Firebase-10.12-%23FFCA28?logo=firebase" alt="Firebase" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-3.4-%2306B6D4?logo=tailwindcss" alt="Tailwind CSS" />
   <img src="https://img.shields.io/badge/Vite-5.3-%23646CFF?logo=vite" alt="Vite" />
-<img src="https://img.shields.io/badge/Sprints-214%2F222-%23F59E0B" alt="Progress" />
+<img src="https://img.shields.io/badge/Sprints-222%2F222-%2322C55E" alt="Progress" />
 </p>
 
 <p align="center">
@@ -35,9 +35,9 @@ Recursos principais:
 - 📱 Responsivo (mobile-first com Tailwind)
 - ♿ Acessibilidade com roles ARIA e navegação por teclado
 - 📊 **Desempenho Cruzado** — visualize o progresso de ambos em itens compartilhados
-- 🏠 **Calendário na Home** — calendário unificado como tela principal *(planejado)*
-- ✏️ **Edição Completa** — edite tudo (inclusive datas) em estudos e revisões compartilhados *(planejado)*
-- 🔙 **Navegação Global** — botão Voltar em todas as telas *(planejado)*
+- 🏠 **Calendário na Home** — calendário unificado como tela principal
+- ✏️ **Edição Completa** — edite tudo (inclusive datas) em estudos e revisões compartilhados
+- 🔙 **Navegação Global** — botão Voltar e breadcrumb em todas as telas
 
 ---
 
@@ -234,7 +234,7 @@ O projeto segue os princípios da **Clean Architecture**:
 
 ## 📖 Documentação Complementar
 
-- [.rulescline/SPRINTS.md](./.rulescline/SPRINTS.md) — Detalhamento de todas as 23 sprints com progresso
+- [.rulescline/SPRINTS.md](./.rulescline/SPRINTS.md) — Detalhamento de todas as 27 sprints com progresso
 - [.rulescline/SPRINT_NEXT.md](./.rulescline/SPRINT_NEXT.md) — Detalhamento das Sprints 11-16 (calendário real + revisões)
 
 ---
@@ -269,12 +269,12 @@ O projeto segue os princípios da **Clean Architecture**:
 | Sprint 24 — DatePicker Revisões | ✅ Concluída | 10/10 |
 | Sprint 25 — Compartilhamento Revisões | ✅ Concluída | 9/9 |
 | Sprint 26 — Desempenho Cruzado | ✅ Concluída | 7/7 |
-| Sprint 27 — Calendário Home + Edição + Nav | ⬜ Planejada | 0/9 |
-| **TOTAL** | | **214/222** |
+| Sprint 27 — Calendário Home + Edição + Nav | ✅ Concluída | 9/9 |
+| **TOTAL** | | **222/222** |
 
 ---
 
-## 🆕 Sprints 24-27 — Novas Features (Planejadas)
+## ✅ Sprints 24-27 — Features Implementadas
 
 As próximas sprints trarão melhorias significativas ao sistema:
 

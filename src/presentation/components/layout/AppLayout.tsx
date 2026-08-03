@@ -1,16 +1,66 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { twMerge } from 'tailwind-merge';
 import { useAuth } from '../../hooks/useAuth';
 import { ThemeToggle } from '../ui/ThemeToggle';
 
-const routeLabels: Record<string, string> = {
-  '/': 'Início',
-  '/study': 'Dashboard',
-  '/study/topics': 'Temas',
-  '/study/calendar': 'Calendário',
-  '/review': 'Revisões',
-  '/review/stats': 'Métricas',
+// ---------------------------------------------------------------------------
+// Breadcrumb mapping — hierarchical
+// ---------------------------------------------------------------------------
+
+interface BreadcrumbSegment {
+  label: string;
+  path: string;
+}
+
+const breadcrumbMap: Record<string, BreadcrumbSegment[]> = {
+  '/': [{ label: 'Início', path: '/' }],
+  '/study': [
+    { label: 'Início', path: '/' },
+    { label: 'Dashboard', path: '/study' },
+  ],
+  '/study/topics': [
+    { label: 'Início', path: '/' },
+    { label: 'Estudos', path: '/study' },
+    { label: 'Temas', path: '/study/topics' },
+  ],
+  '/study/calendar': [
+    { label: 'Início', path: '/' },
+    { label: 'Estudos', path: '/study' },
+    { label: 'Calendário', path: '/study/calendar' },
+  ],
+  '/review': [
+    { label: 'Início', path: '/' },
+    { label: 'Revisões', path: '/review' },
+  ],
+  '/review/stats': [
+    { label: 'Início', path: '/' },
+    { label: 'Revisões', path: '/review' },
+    { label: 'Métricas', path: '/review/stats' },
+  ],
 };
+
+// Dynamic breadcrumb for /review/:reviewId — handled via useLocation matching
+function buildBreadcrumb(pathname: string): BreadcrumbSegment[] {
+  // Exact match
+  if (breadcrumbMap[pathname]) return breadcrumbMap[pathname];
+
+  // Dynamic routes
+  const reviewDetailMatch = pathname.match(/^\/review\/([^/]+)$/);
+  if (reviewDetailMatch) {
+    return [
+      { label: 'Início', path: '/' },
+      { label: 'Revisões', path: '/review' },
+      { label: 'Detalhes', path: pathname },
+    ];
+  }
+
+  // Fallback
+  return [{ label: 'Best of Me', path: '/' }];
+}
+
+// ---------------------------------------------------------------------------
+// Nav Items
+// ---------------------------------------------------------------------------
 
 const NAV_ITEMS = [
   {
@@ -21,11 +71,16 @@ const NAV_ITEMS = [
   { label: '📝 Revisões', path: '/review', activePaths: ['/review', '/review/stats'] },
 ] as const;
 
+// ---------------------------------------------------------------------------
+// AppLayout
+// ---------------------------------------------------------------------------
+
 export function AppLayout() {
   const { user, signOut } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
-  const currentLabel = routeLabels[location.pathname] || 'Best of Me';
+  const breadcrumbs = buildBreadcrumb(location.pathname);
 
   const handleLogout = async () => {
     try {
@@ -35,6 +90,8 @@ export function AppLayout() {
     }
   };
 
+  const showBackButton = location.pathname !== '/';
+
   return (
     <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-950">
       {/* Header */}
@@ -42,16 +99,37 @@ export function AppLayout() {
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
           {/* Breadcrumb / Logo + Nav */}
           <div className="flex items-center gap-3 min-w-0">
-            <Link to="/" className="flex items-center gap-2">
+            <Link to="/" className="flex items-center gap-2 flex-shrink-0">
               <span className="text-lg font-bold text-brand-600 dark:text-brand-400 truncate">
                 Best of Me
               </span>
             </Link>
-            <span className="hidden text-sm text-gray-400 dark:text-gray-500 sm:block">/</span>
-            <span className="hidden text-sm text-gray-500 dark:text-gray-400 sm:block truncate">
-              {currentLabel}
-            </span>
-            {/* Nav links */}
+
+            {/* Breadcrumb (hidden on mobile, visible on sm+) */}
+            <nav className="hidden sm:flex items-center gap-1.5 text-sm" aria-label="Breadcrumb">
+              {breadcrumbs.map((segment, index) => {
+                const isLast = index === breadcrumbs.length - 1;
+                return (
+                  <span key={segment.path} className="flex items-center gap-1.5">
+                    {index > 0 && <span className="text-gray-300 dark:text-gray-600">›</span>}
+                    {isLast ? (
+                      <span className="text-gray-500 dark:text-gray-400 truncate max-w-[120px]">
+                        {segment.label}
+                      </span>
+                    ) : (
+                      <Link
+                        to={segment.path}
+                        className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
+                      >
+                        {segment.label}
+                      </Link>
+                    )}
+                  </span>
+                );
+              })}
+            </nav>
+
+            {/* Nav links (hidden mobile) */}
             <nav className="hidden sm:flex items-center gap-1 ml-4">
               {NAV_ITEMS.map((item) => {
                 const isActive = item.activePaths.some(
@@ -125,10 +203,53 @@ export function AppLayout() {
             )}
           </div>
         </div>
+
+        {/* Mobile bottom bar: back button + breadcrumb */}
+        {showBackButton && (
+          <div className="border-t border-gray-100 dark:border-gray-800 px-4 py-2 sm:hidden">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+              Voltar
+            </button>
+          </div>
+        )}
       </header>
 
       {/* Content */}
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
+        {/* Global back button for non-root pages (desktop) */}
+        {showBackButton && (
+          <div className="mb-4 hidden sm:block">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="inline-flex items-center gap-1 text-sm text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 transition-colors"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+              Voltar
+            </button>
+          </div>
+        )}
         <Outlet />
       </main>
 

@@ -1,5 +1,4 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useStudyTopics } from '../../hooks/useStudyTopics';
 import { useSharing } from '../../hooks/useSharing';
@@ -367,7 +366,6 @@ function ManageSharesModal({
 // ---------------------------------------------------------------------------
 
 export function StudyTopicsPage() {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const {
     topics,
@@ -497,17 +495,6 @@ export function StudyTopicsPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Back link */}
-      <div className="mb-1 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => navigate('/study')}
-          className="text-sm text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
-        >
-          ← Voltar para visão geral
-        </button>
-      </div>
-
       {/* Pending Invitations */}
       {!loading && user && (
         <PendingInvitationsSection
