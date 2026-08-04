@@ -53,6 +53,21 @@ export function HomePage() {
           </div>
         </Link>
 
+        <Link
+          to="/summary"
+          className="group flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-emerald-300 hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:hover:border-emerald-700"
+        >
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-lg dark:bg-emerald-900/50">
+            📝
+          </span>
+          <div>
+            <h3 className="font-medium text-gray-900 dark:text-gray-100">Resumos</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Crie e organize resumos com tags
+            </p>
+          </div>
+        </Link>
+
         {/* Card Academia (desabilitado) */}
         <div className="relative flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 opacity-60 dark:border-gray-800 dark:bg-gray-900/50">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-100 text-lg dark:bg-orange-900/50">

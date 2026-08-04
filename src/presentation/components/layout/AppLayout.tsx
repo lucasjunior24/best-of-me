@@ -37,6 +37,10 @@ const breadcrumbMap: Record<string, BreadcrumbSegment[]> = {
     { label: 'Revisões', path: '/review' },
     { label: 'Métricas', path: '/review/stats' },
   ],
+  '/summary': [
+    { label: 'Início', path: '/' },
+    { label: 'Resumos', path: '/summary' },
+  ],
 };
 
 // Dynamic breadcrumb for /review/:reviewId — handled via useLocation matching
@@ -50,6 +54,15 @@ function buildBreadcrumb(pathname: string): BreadcrumbSegment[] {
     return [
       { label: 'Início', path: '/' },
       { label: 'Revisões', path: '/review' },
+      { label: 'Detalhes', path: pathname },
+    ];
+  }
+
+  const summaryDetailMatch = pathname.match(/^\/summary\/([^/]+)$/);
+  if (summaryDetailMatch) {
+    return [
+      { label: 'Início', path: '/' },
+      { label: 'Resumos', path: '/summary' },
       { label: 'Detalhes', path: pathname },
     ];
   }
@@ -69,6 +82,11 @@ const NAV_ITEMS = [
     activePaths: ['/study', '/study/topics', '/study/calendar'],
   },
   { label: '📝 Revisões', path: '/review', activePaths: ['/review', '/review/stats'] },
+  {
+    label: '📝 Resumos',
+    path: '/summary',
+    activePaths: ['/summary'],
+  },
 ] as const;
 
 // ---------------------------------------------------------------------------

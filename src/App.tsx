@@ -43,6 +43,11 @@ const ReviewStatsPage = lazy(() =>
     default: m.ReviewStatsPage,
   })),
 );
+const SummaryListPage = lazy(() =>
+  import('./presentation/pages/summary/SummaryListPage').then((m) => ({
+    default: m.SummaryListPage,
+  })),
+);
 
 function PageFallback() {
   return (
@@ -68,6 +73,7 @@ function App() {
                 <Route path="/review" element={<ReviewListPage />} />
                 <Route path="/review/stats" element={<ReviewStatsPage />} />
                 <Route path="/review/:reviewId" element={<ReviewDetailPage />} />
+                <Route path="/summary" element={<SummaryListPage />} />
               </Route>
             </Route>
           </Routes>
