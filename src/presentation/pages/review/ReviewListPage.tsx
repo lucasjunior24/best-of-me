@@ -801,6 +801,12 @@ export function ReviewListPage() {
             📊 Métricas
           </Button>
           <Button onClick={handleOpenCreate}>Nova Revisão</Button>
+
+          <Link to="/study/calendar">
+            <Button variant="primary" size="sm">
+              Ver Calendário
+            </Button>
+          </Link>
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { UnifiedCalendar } from '../components/calendar/UnifiedCalendar';
+import { Button } from '@presentation/components/ui/Button';
 
 export function HomePage() {
   const { user } = useAuth();
@@ -12,22 +12,26 @@ export function HomePage() {
         <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">
           Olá, {user?.displayName?.split(' ')[0] || 'usuário'}!
         </h1>
+        <Link to="/study/calendar">
+          <Button variant="primary" size="sm">
+            Ver Calendário
+          </Button>
+        </Link>
       </div>
 
       {/* Calendário unificado */}
-      <UnifiedCalendar compact hideManageButton showEmptyManageLink={false} />
 
       {/* Mini-cards de atalho */}
       <div className="grid gap-3 sm:grid-cols-2">
         <Link
-          to="/study/topics"
+          to="/study"
           className="group flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-brand-300 hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:hover:border-brand-700"
         >
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-lg dark:bg-blue-900/50">
             📚
           </span>
           <div>
-            <h3 className="font-medium text-gray-900 dark:text-gray-100">Gerenciar Temas</h3>
+            <h3 className="font-medium text-gray-900 dark:text-gray-100">Gerenciar Estudo</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400">
               Crie e organize seus temas de estudo
             </p>

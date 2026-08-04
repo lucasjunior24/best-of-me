@@ -16,3 +16,5 @@ export type { ReviewQuestionnaire, CreateQuestionnaireInput } from './ReviewQues
 export { calculateAccuracy } from './ReviewQuestionnaire';
 export type { SharedTopic, CreateSharedTopicInput } from './SharedTopic';
 export type { SharedReview, CreateSharedReviewInput } from './SharedReview';
+export type { Summary, CreateSummaryInput, UpdateSummaryInput } from './Summary';
+export { normalizeTags, validateSummary } from './Summary';

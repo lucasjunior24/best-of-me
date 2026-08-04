@@ -22,3 +22,10 @@ export { ShareReviewUseCase } from './ShareReviewUseCase';
 export { GetPendingReviewInvitationsUseCase } from './GetPendingReviewInvitationsUseCase';
 export type { PendingReviewInvitation } from './GetPendingReviewInvitationsUseCase';
 export { AcceptReviewInvitationUseCase } from './AcceptReviewInvitationUseCase';
+// Summary use cases (Sprint 28)
+export { CreateSummaryUseCase } from './CreateSummaryUseCase';
+export { UpdateSummaryUseCase } from './UpdateSummaryUseCase';
+export { DeleteSummaryUseCase } from './DeleteSummaryUseCase';
+export { GetSummariesUseCase } from './GetSummariesUseCase';
+export type { GetSummariesFilters } from './GetSummariesUseCase';
+export { GetSummaryByIdUseCase } from './GetSummaryByIdUseCase';

@@ -322,6 +322,81 @@ Sprint 27 (Calendário Home + Edição + Nav)
 
 ---
 
+## 🆕 Módulo de Resumos (Summaries) — Sprints 28-31
+
+O módulo de **Resumos** permite criar, editar, visualizar e excluir resumos pessoais. Cada resumo é composto por um título, conteúdo longo (artigo em Markdown), tags para categorização/filtro, e metadados de criação/edição. Os resumos ficam em um novo módulo independente dentro da aplicação, seguindo a mesma arquitetura dos módulos existentes (Estudos e Revisões).
+
+### Funcionalidades
+- ✍️ **CRUD completo** de resumos com título, conteúdo (Markdown) e tags
+- 🏷️ **Sistema de tags** para categorização e filtro por múltiplas tags
+- 📅 **Datas de criação e edição** exibidas em cada resumo
+- 🔍 **Busca e filtro** por texto no título/conteúdo e por tags
+- 📱 **Visualização** do conteúdo renderizado em Markdown
+- 🌗 **Dark Mode** com suporte completo ao tema Dracula
+
+### Arquitetura do Módulo
+
+```
+src/
+├── core/
+│   ├── entities/
+│   │   └── Summary.ts              # Entidade Summary
+│   ├── ports/
+│   │   └── ISummaryRepository.ts   # Contrato do repositório
+│   └── useCases/
+│       ├── CreateSummaryUseCase.ts
+│       ├── UpdateSummaryUseCase.ts
+│       ├── DeleteSummaryUseCase.ts
+│       ├── GetSummariesUseCase.ts
+│       └── GetSummaryByIdUseCase.ts
+│
+├── adapters/
+│   └── firebase/
+│       └── FirebaseSummaryRepository.ts  # Implementação Firestore
+│
+├── presentation/
+│   ├── hooks/
+│   │   └── useSummaries.ts         # Hook de gerenciamento de resumos
+│   └── pages/
+│       └── summary/
+│           ├── SummaryListPage.tsx      # Lista de resumos com filtros
+│           └── SummaryDetailPage.tsx    # Visualização/edição de um resumo
+```
+
+### Entidade `Summary`
+
+```ts
+interface Summary {
+  id: string;
+  userId: string;
+  title: string;           // Título do resumo (obrigatório, min 2 chars)
+  content: string;         // Conteúdo em Markdown (texto longo)
+  tags: string[];          // Array de tags para filtro (ex: ["react", "typescript"])
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+### Coleção no Firestore
+
+- **Path:** `users/{userId}/summaries/{summaryId}`
+- **Índices:** `userId` ASC + `updatedAt` DESC; `tags` ARRAY_CONTAINS
+
+### Rotas
+
+| Rota | Página | Descrição |
+|---|---|---|
+| `/summary` | SummaryListPage | Lista de resumos com busca e filtro por tags |
+| `/summary/:summaryId` | SummaryDetailPage | Visualização/edição de resumo individual |
+
+### Implementação (Sprints 28-31)
+
+Consulte `.rulescline/SPRINT_NEXT.md` para o detalhamento completo das 4 sprints com 29 tasks.
+
+> **Status:** 📋 Planejado — Sprints 28-31 propostas para implementação do módulo de Resumos.
+
+---
+
 ## 🆕 Sprint 23 — Comentários/Anotações + Bug Fixes
 
 A Sprint 23 adiciona anotações nas sessões de estudo e corrige dois bugs relacionados a temas compartilhados:
