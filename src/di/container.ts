@@ -4,6 +4,7 @@ import { FirebaseReviewRepository } from '../adapters/firebase/FirebaseReviewRep
 import { FirebaseAuthRepository } from '../adapters/firebase/FirebaseAuthRepository';
 import { FirebaseSharingRepository } from '../adapters/firebase/FirebaseSharingRepository';
 import { FirebaseReviewSharingRepository } from '../adapters/firebase/FirebaseReviewSharingRepository';
+import { FirebaseSummaryRepository } from '../adapters/firebase/FirebaseSummaryRepository';
 import { CreateStudyTopicUseCase } from '../core/useCases/CreateStudyTopicUseCase';
 import { UpdateStudyTopicUseCase } from '../core/useCases/UpdateStudyTopicUseCase';
 import { DeleteStudyTopicUseCase } from '../core/useCases/DeleteStudyTopicUseCase';
@@ -27,6 +28,11 @@ import { AcceptInvitationUseCase } from '../core/useCases/AcceptInvitationUseCas
 import { ShareReviewUseCase } from '../core/useCases/ShareReviewUseCase';
 import { GetPendingReviewInvitationsUseCase } from '../core/useCases/GetPendingReviewInvitationsUseCase';
 import { AcceptReviewInvitationUseCase } from '../core/useCases/AcceptReviewInvitationUseCase';
+import { CreateSummaryUseCase } from '../core/useCases/CreateSummaryUseCase';
+import { UpdateSummaryUseCase } from '../core/useCases/UpdateSummaryUseCase';
+import { DeleteSummaryUseCase } from '../core/useCases/DeleteSummaryUseCase';
+import { GetSummariesUseCase } from '../core/useCases/GetSummariesUseCase';
+import { GetSummaryByIdUseCase } from '../core/useCases/GetSummaryByIdUseCase';
 
 const toastService = new HotToastService();
 const studyRepository = new FirebaseStudyRepository();
@@ -34,6 +40,7 @@ const reviewRepository = new FirebaseReviewRepository();
 const authRepository = new FirebaseAuthRepository();
 const sharingRepository = new FirebaseSharingRepository();
 const reviewSharingRepository = new FirebaseReviewSharingRepository();
+const summaryRepository = new FirebaseSummaryRepository();
 
 const useCases = {
   // Study use cases
@@ -86,6 +93,13 @@ const useCases = {
     reviewRepository,
     toastService,
   ),
+
+  // Summary use cases (Sprint 29)
+  createSummary: new CreateSummaryUseCase(summaryRepository, toastService),
+  updateSummary: new UpdateSummaryUseCase(summaryRepository, toastService),
+  deleteSummary: new DeleteSummaryUseCase(summaryRepository, toastService),
+  getSummaries: new GetSummariesUseCase(summaryRepository),
+  getSummaryById: new GetSummaryByIdUseCase(summaryRepository),
 };
 
 const container = {
@@ -95,6 +109,7 @@ const container = {
   authRepository,
   sharingRepository,
   reviewSharingRepository,
+  summaryRepository,
   useCases,
 };
 

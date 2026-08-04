@@ -8,14 +8,14 @@ export class DeleteSummaryUseCase {
     private readonly toastService: IToastService,
   ) {}
 
-  async execute(summaryId: string): Promise<void> {
+  async execute(userId: string, summaryId: string): Promise<void> {
     // Verificar se o resumo existe
-    const existing = await this.summaryRepository.getSummaryById(summaryId);
+    const existing = await this.summaryRepository.getSummaryById(userId, summaryId);
     if (!existing) {
       throw new NotFoundError('Summary', summaryId);
     }
 
-    await this.summaryRepository.deleteSummary(summaryId);
+    await this.summaryRepository.deleteSummary(userId, summaryId);
 
     this.toastService.success('Resumo excluído');
   }

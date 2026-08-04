@@ -10,9 +10,9 @@ export class UpdateSummaryUseCase {
     private readonly toastService: IToastService,
   ) {}
 
-  async execute(summaryId: string, input: UpdateSummaryInput): Promise<Summary> {
+  async execute(userId: string, summaryId: string, input: UpdateSummaryInput): Promise<Summary> {
     // Buscar resumo existente
-    const existing = await this.summaryRepository.getSummaryById(summaryId);
+    const existing = await this.summaryRepository.getSummaryById(userId, summaryId);
     if (!existing) {
       throw new NotFoundError('Summary', summaryId);
     }
@@ -36,7 +36,7 @@ export class UpdateSummaryUseCase {
       data.tags = normalizeTags(input.tags);
     }
 
-    const updated = await this.summaryRepository.updateSummary(summaryId, data);
+    const updated = await this.summaryRepository.updateSummary(userId, summaryId, data);
 
     this.toastService.success('Resumo atualizado! 📝');
     return updated;
