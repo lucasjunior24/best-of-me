@@ -5,7 +5,12 @@ import { ToggleSessionCompletionUseCase } from '../core/useCases/ToggleSessionCo
 import { GetStudyProgressUseCase } from '../core/useCases/GetStudyProgressUseCase';
 import { GetCalendarSessionsUseCase } from '../core/useCases/GetCalendarSessionsUseCase';
 import { UpdateStudyTopicUseCase } from '../core/useCases/UpdateStudyTopicUseCase';
-import { ValidationError } from '../shared/errorHandler';
+import { CreateSummaryUseCase } from '../core/useCases/CreateSummaryUseCase';
+import { UpdateSummaryUseCase } from '../core/useCases/UpdateSummaryUseCase';
+import { DeleteSummaryUseCase } from '../core/useCases/DeleteSummaryUseCase';
+import { GetSummariesUseCase } from '../core/useCases/GetSummariesUseCase';
+import { GetSummaryByIdUseCase } from '../core/useCases/GetSummaryByIdUseCase';
+import { ValidationError, NotFoundError } from '../shared/errorHandler';
 
 function createMockRepo() {
   return {
@@ -319,5 +324,364 @@ describe('UpdateStudyTopicUseCase', () => {
 
     expect(result).toEqual(updatedTopic);
     expect(toast.success).toHaveBeenCalledWith('Tema atualizado!');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Sprint 31 — Testes dos Use Cases de Summary
+// ---------------------------------------------------------------------------
+
+function createMockSummaryRepo() {
+  return {
+    createSummary: vi.fn(),
+    updateSummary: vi.fn(),
+    deleteSummary: vi.fn(),
+    getSummariesByUser: vi.fn(),
+    getSummaryById: vi.fn(),
+    getSummariesByTags: vi.fn(),
+    searchSummaries: vi.fn(),
+  };
+}
+
+function createMockSummaryToast() {
+  return {
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+  };
+}
+
+// ---- CreateSummaryUseCase ----
+
+describe('CreateSummaryUseCase', () => {
+  it('deve criar um resumo com sucesso e normalizar tags', async () => {
+    const repo = createMockSummaryRepo();
+    const toast = createMockSummaryToast();
+    const created = {
+      id: 'summary-1',
+      userId: 'user-1',
+      title: 'Entendendo React Hooks',
+      content: '# React Hooks\n\nConteúdo do resumo.',
+      tags: ['react', 'hooks'],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    repo.createSummary.mockResolvedValue(created);
+
+    const useCase = new CreateSummaryUseCase(repo, toast);
+    const result = await useCase.execute('user-1', {
+      title: 'Entendendo React Hooks',
+      content: '# React Hooks\n\nConteúdo do resumo.',
+      tags: ['React', '  Hooks  '],
+    });
+
+    expect(result).toEqual(created);
+    expect(result.tags).toEqual(['react', 'hooks']); // normalized: trimmed + lowercased
+    expect(repo.createSummary).toHaveBeenCalled();
+    expect(toast.success).toHaveBeenCalledWith('Resumo criado com sucesso! 📝');
+  });
+
+  it('deve rejeitar título muito curto', async () => {
+    const repo = createMockSummaryRepo();
+    const toast = createMockSummaryToast();
+    const useCase = new CreateSummaryUseCase(repo, toast);
+
+    await expect(
+      useCase.execute('user-1', {
+        title: 'A',
+        content: 'Conteúdo válido',
+        tags: [],
+      }),
+    ).rejects.toThrow(ValidationError);
+  });
+
+  it('deve rejeitar conteúdo vazio', async () => {
+    const repo = createMockSummaryRepo();
+    const toast = createMockSummaryToast();
+    const useCase = new CreateSummaryUseCase(repo, toast);
+
+    await expect(
+      useCase.execute('user-1', {
+        title: 'Título válido',
+        content: '',
+        tags: [],
+      }),
+    ).rejects.toThrow(ValidationError);
+  });
+
+  it('deve rejeitar mais de 20 tags', async () => {
+    const repo = createMockSummaryRepo();
+    const toast = createMockSummaryToast();
+    const useCase = new CreateSummaryUseCase(repo, toast);
+
+    const tags = Array.from({ length: 21 }, (_, i) => `tag-${i}`);
+    await expect(
+      useCase.execute('user-1', {
+        title: 'Título válido',
+        content: 'Conteúdo válido',
+        tags,
+      }),
+    ).rejects.toThrow(ValidationError);
+  });
+
+  it('deve rejeitar tags duplicadas (case-insensitive)', async () => {
+    const repo = createMockSummaryRepo();
+    const toast = createMockSummaryToast();
+    const useCase = new CreateSummaryUseCase(repo, toast);
+
+    await expect(
+      useCase.execute('user-1', {
+        title: 'Título válido',
+        content: 'Conteúdo válido',
+        tags: ['React', 'react', 'REACT'],
+      }),
+    ).rejects.toThrow(ValidationError);
+  });
+});
+
+// ---- UpdateSummaryUseCase ----
+
+describe('UpdateSummaryUseCase', () => {
+  it('deve atualizar um resumo com sucesso', async () => {
+    const repo = createMockSummaryRepo();
+    const toast = createMockSummaryToast();
+    const existing = {
+      id: 'summary-1',
+      userId: 'user-1',
+      title: 'Título antigo',
+      content: 'Conteúdo antigo',
+      tags: ['old'],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const updated = {
+      ...existing,
+      title: 'Novo título',
+      content: 'Conteúdo novo',
+      tags: ['new'],
+      updatedAt: new Date(),
+    };
+    repo.getSummaryById.mockResolvedValue(existing);
+    repo.updateSummary.mockResolvedValue(updated);
+
+    const useCase = new UpdateSummaryUseCase(repo, toast);
+    const result = await useCase.execute('user-1', 'summary-1', {
+      title: 'Novo título',
+      content: 'Conteúdo novo',
+      tags: ['new'],
+    });
+
+    expect(result).toEqual(updated);
+    expect(toast.success).toHaveBeenCalledWith('Resumo atualizado! 📝');
+  });
+
+  it('deve lançar NotFoundError se resumo não existir', async () => {
+    const repo = createMockSummaryRepo();
+    const toast = createMockSummaryToast();
+    repo.getSummaryById.mockResolvedValue(null);
+
+    const useCase = new UpdateSummaryUseCase(repo, toast);
+    await expect(useCase.execute('user-1', 'nonexistent', { title: 'Novo' })).rejects.toThrow(
+      NotFoundError,
+    );
+  });
+
+  it('deve suportar partial update (apenas título)', async () => {
+    const repo = createMockSummaryRepo();
+    const toast = createMockSummaryToast();
+    const existing = {
+      id: 'summary-1',
+      userId: 'user-1',
+      title: 'Título antigo',
+      content: 'Conteúdo antigo',
+      tags: ['tag'],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    repo.getSummaryById.mockResolvedValue(existing);
+    repo.updateSummary.mockResolvedValue({ ...existing, title: 'Só título' });
+
+    const useCase = new UpdateSummaryUseCase(repo, toast);
+    const result = await useCase.execute('user-1', 'summary-1', { title: 'Só título' });
+
+    expect(result.title).toBe('Só título');
+    expect(result.content).toBe('Conteúdo antigo'); // unchanged
+  });
+});
+
+// ---- DeleteSummaryUseCase ----
+
+describe('DeleteSummaryUseCase', () => {
+  it('deve deletar um resumo com sucesso', async () => {
+    const repo = createMockSummaryRepo();
+    const toast = createMockSummaryToast();
+    const existing = {
+      id: 'summary-1',
+      userId: 'user-1',
+      title: 'Teste',
+      content: 'Conteúdo',
+      tags: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    repo.getSummaryById.mockResolvedValue(existing);
+    repo.deleteSummary.mockResolvedValue(undefined);
+
+    const useCase = new DeleteSummaryUseCase(repo, toast);
+    await useCase.execute('user-1', 'summary-1');
+
+    expect(repo.deleteSummary).toHaveBeenCalledWith('user-1', 'summary-1');
+    expect(toast.success).toHaveBeenCalledWith('Resumo excluído');
+  });
+
+  it('deve lançar NotFoundError se resumo não existir', async () => {
+    const repo = createMockSummaryRepo();
+    const toast = createMockSummaryToast();
+    repo.getSummaryById.mockResolvedValue(null);
+
+    const useCase = new DeleteSummaryUseCase(repo, toast);
+    await expect(useCase.execute('user-1', 'nonexistent')).rejects.toThrow(NotFoundError);
+  });
+});
+
+// ---- GetSummariesUseCase ----
+
+describe('GetSummariesUseCase', () => {
+  it('deve listar todos os resumos do usuário', async () => {
+    const repo = createMockSummaryRepo();
+    const summaries = [
+      {
+        id: '1',
+        userId: 'user-1',
+        title: 'A',
+        content: 'C',
+        tags: ['x'],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: '2',
+        userId: 'user-1',
+        title: 'B',
+        content: 'D',
+        tags: ['y'],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ];
+    repo.getSummariesByUser.mockResolvedValue(summaries);
+
+    const useCase = new GetSummariesUseCase(repo);
+    const result = await useCase.execute('user-1', {});
+
+    expect(result).toHaveLength(2);
+    expect(result).toEqual(summaries);
+  });
+
+  it('deve filtrar por tags', async () => {
+    const repo = createMockSummaryRepo();
+    repo.getSummariesByTags.mockResolvedValue([
+      {
+        id: '1',
+        userId: 'user-1',
+        title: 'A',
+        content: 'C',
+        tags: ['react'],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+
+    const useCase = new GetSummariesUseCase(repo);
+    const result = await useCase.execute('user-1', { tags: ['react'] });
+
+    expect(result).toHaveLength(1);
+    expect(repo.getSummariesByTags).toHaveBeenCalledWith('user-1', ['react']);
+  });
+
+  it('deve buscar por query', async () => {
+    const repo = createMockSummaryRepo();
+    repo.searchSummaries.mockResolvedValue([
+      {
+        id: '2',
+        userId: 'user-1',
+        title: 'Hooks',
+        content: 'Conteúdo sobre hooks',
+        tags: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+
+    const useCase = new GetSummariesUseCase(repo);
+    const result = await useCase.execute('user-1', { query: 'hooks' });
+
+    expect(result).toHaveLength(1);
+    expect(repo.searchSummaries).toHaveBeenCalledWith('user-1', 'hooks');
+  });
+
+  it('deve combinar filtros de tags e query', async () => {
+    const repo = createMockSummaryRepo();
+    // When both tags AND query are provided, getSummariesByTags is called first,
+    // then results are filtered by query client-side
+    repo.getSummariesByTags.mockResolvedValue([
+      {
+        id: '1',
+        userId: 'user-1',
+        title: 'React Hooks',
+        content: 'Conteúdo sobre react hooks',
+        tags: ['react'],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: '2',
+        userId: 'user-1',
+        title: 'Node Basics',
+        content: 'Conteúdo sobre node',
+        tags: ['react'],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+
+    const useCase = new GetSummariesUseCase(repo);
+    const result = await useCase.execute('user-1', { tags: ['react'], query: 'hooks' });
+
+    // Only the first result matches 'hooks' query
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('1');
+    expect(repo.getSummariesByTags).toHaveBeenCalledWith('user-1', ['react']);
+  });
+});
+
+// ---- GetSummaryByIdUseCase ----
+
+describe('GetSummaryByIdUseCase', () => {
+  it('deve retornar resumo por ID', async () => {
+    const repo = createMockSummaryRepo();
+    const summary = {
+      id: 'summary-1',
+      userId: 'user-1',
+      title: 'Teste',
+      content: 'Conteúdo',
+      tags: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    repo.getSummaryById.mockResolvedValue(summary);
+
+    const useCase = new GetSummaryByIdUseCase(repo);
+    const result = await useCase.execute('user-1', 'summary-1');
+
+    expect(result).toEqual(summary);
+  });
+
+  it('deve lançar NotFoundError se resumo não existir', async () => {
+    const repo = createMockSummaryRepo();
+    repo.getSummaryById.mockResolvedValue(null);
+
+    const useCase = new GetSummaryByIdUseCase(repo);
+    await expect(useCase.execute('user-1', 'nonexistent')).rejects.toThrow(NotFoundError);
   });
 });

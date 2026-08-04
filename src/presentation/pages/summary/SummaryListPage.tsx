@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAuth } from '../../hooks/useAuth';
@@ -244,6 +244,7 @@ function DeleteConfirmModal({
 export function SummaryListPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     summaries,
     loading,
@@ -262,6 +263,40 @@ export function SummaryListPage() {
   const [editingSummary, setEditingSummary] = useState<Summary | null>(null);
   const [deletingSummary, setDeletingSummary] = useState<Summary | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // ---- Sync query params → local state on mount ----
+  useEffect(() => {
+    const tagsParam = searchParams.get('tags');
+    const searchParam = searchParams.get('search');
+
+    if (tagsParam) {
+      const tagsFromUrl = tagsParam
+        .split(',')
+        .map((t) => t.trim().toLowerCase())
+        .filter(Boolean);
+      if (tagsFromUrl.length > 0) {
+        setSelectedTags(tagsFromUrl);
+      }
+    }
+
+    if (searchParam) {
+      setSearchQuery(searchParam.trim());
+    }
+    // Run only on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ---- Sync local state → query params ----
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (selectedTags.length > 0) {
+      params.set('tags', selectedTags.join(','));
+    }
+    if (searchQuery.trim()) {
+      params.set('search', searchQuery.trim());
+    }
+    setSearchParams(params, { replace: true });
+  }, [selectedTags, searchQuery, setSearchParams]);
 
   const fetchSummaries = useCallback(() => {
     if (user) {
