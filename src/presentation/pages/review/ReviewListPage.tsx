@@ -300,21 +300,21 @@ function ReviewFormModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4"
       onClick={onClose}
     >
       <div
-        className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+        className="bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             {isEditing ? 'Editar Revisão' : 'Nova Revisão'}
           </h3>
           <button
             onClick={onClose}
-            className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="p-2 -mr-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             aria-label="Fechar"
           >
             <svg
@@ -334,7 +334,7 @@ function ReviewFormModal({
         </div>
 
         {/* Form */}
-        <div className="p-4 space-y-4">
+        <div className="p-4 sm:p-5 space-y-4">
           {/* Nome */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -346,7 +346,7 @@ function ReviewFormModal({
               onChange={(e) => setName(e.target.value)}
               placeholder="Ex: Prova da AWS"
               className={twMerge(
-                'w-full rounded-lg border px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100',
+                'w-full rounded-lg border px-3 py-3 sm:py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100',
                 'focus:outline-none focus:ring-2 focus:ring-brand-500',
                 errors.name
                   ? 'border-red-300 dark:border-red-700'
@@ -366,22 +366,22 @@ function ReviewFormModal({
                 type="color"
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
-                className="h-9 w-14 rounded border border-gray-300 dark:border-gray-600 cursor-pointer"
+                className="h-10 sm:h-9 w-14 rounded border border-gray-300 dark:border-gray-600 cursor-pointer"
               />
               <span className="text-sm text-gray-500 dark:text-gray-400">{color}</span>
             </div>
           </div>
 
           {/* Toggle: Modo Automático / Manual */}
-          <div className="flex items-center justify-between rounded-lg bg-gray-50 dark:bg-gray-800 p-3">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <div className="flex items-center justify-between gap-2 rounded-lg bg-gray-50 dark:bg-gray-800 p-3">
+            <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 leading-tight">
               {isManualMode ? '🗓️ Selecionar datas manualmente' : '⚙️ Gerar datas automaticamente'}
             </span>
             <button
               type="button"
               onClick={handleToggleMode}
               className={twMerge(
-                'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
+                'relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0',
                 isManualMode ? 'bg-brand-600' : 'bg-gray-300 dark:bg-gray-600',
               )}
               role="switch"
@@ -409,7 +409,7 @@ function ReviewFormModal({
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
                   className={twMerge(
-                    'w-full rounded-lg border px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100',
+                    'w-full rounded-lg border px-3 py-3 sm:py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100',
                     'focus:outline-none focus:ring-2 focus:ring-brand-500',
                     errors.startDate
                       ? 'border-red-300 dark:border-red-700'
@@ -421,52 +421,56 @@ function ReviewFormModal({
                 )}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Repetir a cada X dias
-                </label>
-                <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Repetir a cada X dias
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      value={intervalDays}
+                      onChange={(e) => setIntervalDays(parseInt(e.target.value) || 1)}
+                      className={twMerge(
+                        'w-full sm:w-24 rounded-lg border px-3 py-3 sm:py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100',
+                        'focus:outline-none focus:ring-2 focus:ring-brand-500',
+                        errors.intervalDays
+                          ? 'border-red-300 dark:border-red-700'
+                          : 'border-gray-300 dark:border-gray-600',
+                      )}
+                    />
+                    <span className="text-sm text-gray-500 dark:text-gray-400 flex-shrink-0">
+                      dias
+                    </span>
+                  </div>
+                  {errors.intervalDays && (
+                    <p className="mt-1 text-xs text-red-500">{errors.intervalDays}</p>
+                  )}
+                </div>
+
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Quantidade de revisões
+                  </label>
                   <input
                     type="number"
                     min={1}
-                    value={intervalDays}
-                    onChange={(e) => setIntervalDays(parseInt(e.target.value) || 1)}
+                    max={365}
+                    value={totalReviews}
+                    onChange={(e) => setTotalReviews(parseInt(e.target.value) || 1)}
                     className={twMerge(
-                      'w-24 rounded-lg border px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100',
+                      'w-full sm:w-24 rounded-lg border px-3 py-3 sm:py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100',
                       'focus:outline-none focus:ring-2 focus:ring-brand-500',
-                      errors.intervalDays
+                      errors.totalReviews
                         ? 'border-red-300 dark:border-red-700'
                         : 'border-gray-300 dark:border-gray-600',
                     )}
                   />
-                  <span className="text-sm text-gray-500 dark:text-gray-400">dias</span>
-                </div>
-                {errors.intervalDays && (
-                  <p className="mt-1 text-xs text-red-500">{errors.intervalDays}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Quantidade de revisões
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  max={365}
-                  value={totalReviews}
-                  onChange={(e) => setTotalReviews(parseInt(e.target.value) || 1)}
-                  className={twMerge(
-                    'w-24 rounded-lg border px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100',
-                    'focus:outline-none focus:ring-2 focus:ring-brand-500',
-                    errors.totalReviews
-                      ? 'border-red-300 dark:border-red-700'
-                      : 'border-gray-300 dark:border-gray-600',
+                  {errors.totalReviews && (
+                    <p className="mt-1 text-xs text-red-500">{errors.totalReviews}</p>
                   )}
-                />
-                {errors.totalReviews && (
-                  <p className="mt-1 text-xs text-red-500">{errors.totalReviews}</p>
-                )}
+                </div>
               </div>
             </div>
           )}
@@ -481,7 +485,7 @@ function ReviewFormModal({
                 selectedDates={selectedDates}
                 onChange={setSelectedDates}
                 highlightColor={color}
-                className="border border-gray-200 dark:border-gray-700 rounded-lg p-3"
+                className="border border-gray-200 dark:border-gray-700 rounded-lg p-2 sm:p-3"
               />
               {errors.scheduledDates && (
                 <p className="mt-1 text-xs text-red-500">{errors.scheduledDates}</p>
@@ -495,7 +499,7 @@ function ReviewFormModal({
               <p className="text-xs font-semibold text-brand-700 dark:text-brand-300 mb-1">
                 Datas {isManualMode ? 'selecionadas' : 'geradas'} ({effectiveDates.length}):
               </p>
-              <p className="text-sm text-brand-600 dark:text-brand-400">
+              <p className="text-xs sm:text-sm text-brand-600 dark:text-brand-400 break-words">
                 {effectiveDates.map(formatShortDate).join(', ')}
               </p>
             </div>
@@ -503,11 +507,11 @@ function ReviewFormModal({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
-          <Button variant="outline" onClick={onClose}>
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 p-4 sm:p-5 border-t border-gray-200 dark:border-gray-700">
+          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} loading={loading}>
+          <Button onClick={handleSubmit} loading={loading} className="w-full sm:w-auto">
             {isEditing ? 'Salvar' : 'Criar Revisão'}
           </Button>
         </div>
@@ -537,29 +541,34 @@ function ConfirmDeleteModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4"
       onClick={onClose}
     >
       <div
-        className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-sm w-full"
+        className="bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-xl shadow-xl max-w-sm w-full"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="p-4 sm:p-5 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             Excluir revisão
           </h3>
         </div>
-        <div className="p-4">
+        <div className="p-4 sm:p-5">
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Tem certeza que deseja excluir <strong>"{reviewName}"</strong>? Todos os questionários
             associados também serão removidos. Esta ação não pode ser desfeita.
           </p>
         </div>
-        <div className="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
-          <Button variant="outline" onClick={onClose}>
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 p-4 sm:p-5 border-t border-gray-200 dark:border-gray-700">
+          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
             Cancelar
           </Button>
-          <Button variant="danger" onClick={onConfirm} loading={loading}>
+          <Button
+            variant="danger"
+            onClick={onConfirm}
+            loading={loading}
+            className="w-full sm:w-auto"
+          >
             Excluir
           </Button>
         </div>
@@ -614,20 +623,20 @@ function ShareReviewModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4"
       onClick={onClose}
     >
       <div
-        className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-sm w-full"
+        className="bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-xl shadow-xl max-w-sm w-full"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             Compartilhar Revisão
           </h3>
           <button
             onClick={onClose}
-            className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="p-2 -mr-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             aria-label="Fechar"
           >
             <svg
@@ -645,7 +654,7 @@ function ShareReviewModal({
             </svg>
           </button>
         </div>
-        <div className="p-4 space-y-4">
+        <div className="p-4 sm:p-5 space-y-4">
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Compartilhe <strong>"{reviewName}"</strong> com outro usuário. O tema (nome, cor, datas)
             será compartilhado, mas cada um terá seus próprios questionários.
@@ -661,7 +670,7 @@ function ShareReviewModal({
               onChange={(e) => setEmail(e.target.value)}
               placeholder="exemplo@gmail.com"
               className={twMerge(
-                'w-full rounded-lg border px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100',
+                'w-full rounded-lg border px-3 py-3 sm:py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100',
                 'focus:outline-none focus:ring-2 focus:ring-brand-500',
                 error
                   ? 'border-red-300 dark:border-red-700'
@@ -678,18 +687,18 @@ function ShareReviewModal({
             <select
               value={permission}
               onChange={(e) => setPermission(e.target.value as 'edit' | 'view')}
-              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-3 sm:py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
             >
               <option value="edit">Pode editar</option>
               <option value="view">Apenas visualizar</option>
             </select>
           </div>
         </div>
-        <div className="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
-          <Button variant="outline" onClick={onClose}>
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 p-4 sm:p-5 border-t border-gray-200 dark:border-gray-700">
+          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
             Cancelar
           </Button>
-          <Button onClick={handleShare} loading={sharing}>
+          <Button onClick={handleShare} loading={sharing} className="w-full sm:w-auto">
             Compartilhar
           </Button>
         </div>
@@ -787,21 +796,24 @@ export function ReviewListPage() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-5xl px-4 py-4 sm:py-8 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-6 sm:mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Revisões</h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
+            Revisões
+          </h1>
+          <p className="mt-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
             Gerencie seus ciclos de revisão espaçada
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="ghost" size="sm" onClick={() => navigate('/review/stats')}>
             📊 Métricas
           </Button>
-          <Button onClick={handleOpenCreate}>Nova Revisão</Button>
-
+          <Button size="sm" onClick={handleOpenCreate}>
+            Nova Revisão
+          </Button>
           <Link to="/study/calendar">
             <Button variant="primary" size="sm">
               Ver Calendário
@@ -820,24 +832,29 @@ export function ReviewListPage() {
             {pendingInvitations.map((invite) => (
               <div
                 key={invite.id}
-                className="flex items-center justify-between rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4"
+                className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4"
               >
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                     {invite.review?.name ?? 'Revisão'}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                     Convite de {invite.ownerEmail}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button size="sm" onClick={() => handleAcceptInvitation(invite.id)}>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    size="sm"
+                    onClick={() => handleAcceptInvitation(invite.id)}
+                    className="flex-1 sm:flex-none"
+                  >
                     Aceitar
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleRejectInvitation(invite.id)}
+                    className="flex-1 sm:flex-none"
                   >
                     Recusar
                   </Button>
@@ -962,8 +979,8 @@ export function ReviewListPage() {
                   {/* Voltar ao início — removido (AppLayout provê navegação global na Sprint 27) */}
                 </div>
 
-                {/* Actions (visible on hover) */}
-                <div className="absolute right-3 top-3 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                {/* Actions (always visible on mobile, hover on desktop) */}
+                <div className="absolute right-3 top-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                   {!isShared && (
                     <button
                       type="button"
