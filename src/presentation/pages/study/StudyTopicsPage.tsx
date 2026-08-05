@@ -426,13 +426,13 @@ export function StudyTopicsPage() {
       const now = new Date();
       const startDate = '2024-01-01';
       const endDate = `${now.getFullYear()}-12-31`;
-      const sessions = await container.useCases.getCalendarSessions.execute(
+      const sessions = await container.studyRepository.getSessionsByDateRange(
         user!.id,
         startDate,
         endDate,
         [topic.id],
       );
-      const dates = sessions.map((day) => day.date);
+      const dates = sessions.map((session) => session.date);
       setEditingDates(dates);
     } catch {
       setEditingDates([]);

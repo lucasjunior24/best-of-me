@@ -24,8 +24,6 @@ export type CreateStudyTopicInput = {
   scheduledDates: string[];
 };
 
-export type UpdateStudyTopicInput = Partial<
-  Omit<CreateStudyTopicInput, 'scheduledDates'> & {
-    sharedWith?: string[];
-  }
->;
+export type UpdateStudyTopicInput = Partial<CreateStudyTopicInput> & {
+  sharedWith?: string[];
+};

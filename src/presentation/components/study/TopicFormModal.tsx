@@ -86,16 +86,16 @@ export function TopicFormModal({
       errs.hoursPerDay = 'Deve ser pelo menos 15 minutos (00:15).';
     }
 
-    if (!isEditing && scheduledDates.length === 0) {
+    if (scheduledDates.length === 0) {
       errs.scheduledDates = 'Selecione ao menos uma data.';
     }
 
-    if (!isEditing && scheduledDates.length !== 0 && scheduledDates.length !== totalDays) {
+    if (scheduledDates.length !== 0 && scheduledDates.length !== totalDays) {
       errs.scheduledDates = `Selecione exatamente ${totalDays} ${totalDays === 1 ? 'dia' : 'dias'} (${scheduledDates.length} selecionado${scheduledDates.length === 1 ? '' : 's'}).`;
     }
 
     return errs;
-  }, [name, color, totalDays, hoursPerDay, scheduledDates, isEditing]);
+  }, [name, color, totalDays, hoursPerDay, scheduledDates]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -108,12 +108,12 @@ export function TopicFormModal({
     setSubmitting(true);
 
     if (isEditing && editingTopic) {
-      console.log('Updating topic:');
       await onUpdate(editingTopic.id, {
         name: name.trim(),
         color,
         totalDays,
         hoursPerDay,
+        scheduledDates,
       });
     } else {
       await onSubmit({
@@ -209,31 +209,29 @@ export function TopicFormModal({
           />
         </div>
 
-        {/* Date picker (only in create mode) */}
-        {!isEditing && (
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Datas de Estudo
-            </label>
-            <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-              <DatePicker
-                selectedDates={scheduledDates}
-                onChange={(dates) => {
-                  setScheduledDates(dates);
-                  if (errors.scheduledDates)
-                    setErrors((prev) => ({ ...prev, scheduledDates: undefined }));
-                }}
-                highlightColor={color}
-                maxDates={totalDays}
-              />
-            </div>
-            {errors.scheduledDates && (
-              <p className="mt-1.5 text-xs text-red-500 dark:text-red-400" role="alert">
-                {errors.scheduledDates}
-              </p>
-            )}
+        {/* Date picker */}
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Datas de Estudo
+          </label>
+          <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+            <DatePicker
+              selectedDates={scheduledDates}
+              onChange={(dates) => {
+                setScheduledDates(dates);
+                if (errors.scheduledDates)
+                  setErrors((prev) => ({ ...prev, scheduledDates: undefined }));
+              }}
+              highlightColor={color}
+              maxDates={totalDays}
+            />
           </div>
-        )}
+          {errors.scheduledDates && (
+            <p className="mt-1.5 text-xs text-red-500 dark:text-red-400" role="alert">
+              {errors.scheduledDates}
+            </p>
+          )}
+        </div>
       </form>
     </Modal>
   );

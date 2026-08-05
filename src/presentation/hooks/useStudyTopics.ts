@@ -170,7 +170,9 @@ export function useStudyTopics(): UseStudyTopicsReturn {
     async (topicId: string, data: UpdateStudyTopicInput): Promise<StudyTopic | null> => {
       setError(null);
       try {
-        const updated = await container.useCases.updateStudyTopic.execute(topicId, data);
+        const userId = userIdRef.current;
+        if (!userId) throw new Error('Usuário não autenticado.');
+        const updated = await container.useCases.updateStudyTopic.execute(topicId, userId, data);
         setTopics((prev) => prev.map((t) => (t.id === topicId ? updated : t)));
         container.toastService.success('Tema atualizado!');
         return updated;

@@ -320,9 +320,45 @@ describe('UpdateStudyTopicUseCase', () => {
     repo.updateTopic.mockResolvedValue(updatedTopic);
 
     const useCase = new UpdateStudyTopicUseCase(repo, toast);
-    const result = await useCase.execute('topic-1', { name: 'React Avançado', totalDays: 5 });
+    const result = await useCase.execute('topic-1', 'user-1', {
+      name: 'React Avançado',
+      totalDays: 5,
+    });
 
     expect(result).toEqual(updatedTopic);
+    expect(toast.success).toHaveBeenCalledWith('Tema atualizado!');
+  });
+
+  it('deve reagendar sessões quando scheduledDates é fornecido', async () => {
+    const repo = createMockRepo();
+    const toast = createMockToast();
+    const updatedTopic = {
+      id: 'topic-1',
+      userId: 'user-1',
+      name: 'React',
+      color: '#3b82f6',
+      totalDays: 2,
+      hoursPerDay: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    repo.updateTopic.mockResolvedValue(updatedTopic);
+
+    const useCase = new UpdateStudyTopicUseCase(repo, toast);
+    await useCase.execute('topic-1', 'user-1', {
+      scheduledDates: ['2026-08-10', '2026-08-11'],
+      hoursPerDay: 1,
+    });
+
+    expect(repo.deleteSessionsByTopic).toHaveBeenCalledWith('user-1', 'topic-1');
+    expect(repo.scheduleSessions).toHaveBeenCalledWith([
+      { userId: 'user-1', topicId: 'topic-1', date: '2026-08-10', duration: 60 },
+      { userId: 'user-1', topicId: 'topic-1', date: '2026-08-11', duration: 60 },
+    ]);
+    expect(repo.updateTopic).toHaveBeenCalledWith('topic-1', {
+      scheduledDates: ['2026-08-10', '2026-08-11'],
+      hoursPerDay: 1,
+    });
     expect(toast.success).toHaveBeenCalledWith('Tema atualizado!');
   });
 });
