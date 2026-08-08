@@ -4,9 +4,11 @@ import { twMerge } from 'tailwind-merge';
 import { useAuth } from '../../hooks/useAuth';
 import { useReviewStats } from '../../hooks/useReviewStats';
 import { useReviews } from '../../hooks/useReviews';
+import { useSharedReviewStats } from '../../hooks/useSharedReviewStats';
 import { Button } from '../../components/ui/Button';
 import { Spinner } from '../../components/ui/Spinner';
 import type { ReviewStats, ReviewStatsData } from '../../../core/entities/ProgressData';
+import type { SharedReviewStats } from '../../../core/useCases/GetSharedReviewStatsUseCase';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -630,6 +632,9 @@ export function ReviewStatsPage() {
   const [reviewsLoaded, setReviewsLoaded] = useState(false);
   const { loadReviews } = useReviews();
 
+  // T33.5 — Shared review stats hook
+  const { sharedStatsMap, loading: sharedStatsLoading, loadSharedStats } = useSharedReviewStats();
+
   const fetchAll = useCallback(() => {
     if (user) {
       loadStats(user.id);
@@ -643,6 +648,19 @@ export function ReviewStatsPage() {
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
+
+  // T33.5 — Carregar métricas compartilhadas após reviews carregarem
+  useEffect(() => {
+    if (user && reviews.length > 0) {
+      loadSharedStats(user.id, reviews);
+    }
+  }, [user, reviews, loadSharedStats]);
+
+  // Filtrar apenas revisões compartilhadas
+  const sharedReviews = useMemo(
+    () => reviews.filter((r) => r.isShared || (r.sharedWith && r.sharedWith.length > 0)),
+    [reviews],
+  );
 
   // T15.6 — Filtro multi-select por revisão
   const [selectedReviewIds, setSelectedReviewIds] = useState<string[]>([]);
@@ -673,6 +691,98 @@ export function ReviewStatsPage() {
     const csv = generateCSV(stats);
     downloadCSV(csv, 'revisoes_metricas.csv');
   }, [stats]);
+
+  // ---- Shared Review Comparison Card (T33.5) ----
+  function SharedReviewComparisonCard({ sharedStats: s }: { sharedStats: SharedReviewStats }) {
+    return (
+      <div className="rounded-2xl border border-purple-200 bg-white p-5 shadow-sm dark:border-purple-800 dark:bg-gray-800">
+        {/* Header */}
+        <div className="mb-4 flex items-center gap-3">
+          <div
+            className="h-4 w-4 rounded-full flex-shrink-0"
+            style={{ backgroundColor: s.reviewColor }}
+          />
+          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">
+            {s.reviewName}
+          </h3>
+          <span className="ml-auto rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+            🤝 Compartilhada
+          </span>
+        </div>
+
+        {/* Tabela comparativa: Você vs Parceiro */}
+        <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-gray-50 dark:bg-gray-800/50">
+                <th className="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400">
+                  Indicador
+                </th>
+                <th className="px-3 py-2 text-center font-medium text-gray-500 dark:text-gray-400">
+                  Você
+                </th>
+                <th className="px-3 py-2 text-center font-medium text-gray-500 dark:text-gray-400">
+                  {s.partnerStats.email}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+              <tr>
+                <td className="px-3 py-2 text-gray-600 dark:text-gray-300">Conclusão</td>
+                <td className="px-3 py-2 text-center font-semibold text-brand-600 dark:text-brand-400">
+                  {s.myStats.percentage}%
+                </td>
+                <td className="px-3 py-2 text-center font-semibold text-blue-600 dark:text-blue-400">
+                  {s.partnerStats.percentage}%
+                </td>
+              </tr>
+              <tr>
+                <td className="px-3 py-2 text-gray-600 dark:text-gray-300">Acurácia</td>
+                <td className="px-3 py-2 text-center font-semibold text-brand-600 dark:text-brand-400">
+                  {s.myStats.averageAccuracy}%
+                </td>
+                <td className="px-3 py-2 text-center font-semibold text-blue-600 dark:text-blue-400">
+                  {s.partnerStats.averageAccuracy}%
+                </td>
+              </tr>
+              <tr>
+                <td className="px-3 py-2 text-gray-600 dark:text-gray-300">Completude</td>
+                <td className="px-3 py-2 text-center text-gray-700 dark:text-gray-300">
+                  {s.myStats.completedReviews}/{s.myStats.totalReviews}
+                </td>
+                <td className="px-3 py-2 text-center text-gray-700 dark:text-gray-300">
+                  {s.partnerStats.completedReviews}/{s.partnerStats.totalReviews}
+                </td>
+              </tr>
+              <tr>
+                <td className="px-3 py-2 text-gray-600 dark:text-gray-300">Combinado</td>
+                <td
+                  colSpan={2}
+                  className="px-3 py-2 text-center font-semibold text-purple-600 dark:text-purple-400"
+                >
+                  {s.combinedStats.percentage}% conclusão · {s.combinedStats.averageAccuracy}%
+                  acurácia
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Indicador visual de quem está mais adiantado */}
+        <div className="mt-3 flex items-center justify-end gap-2 text-xs">
+          {s.myStats.percentage > s.partnerStats.percentage ? (
+            <span className="text-green-600 dark:text-green-400">🏆 Você está na frente!</span>
+          ) : s.partnerStats.percentage > s.myStats.percentage ? (
+            <span className="text-blue-600 dark:text-blue-400">
+              👤 {s.partnerStats.email} está na frente
+            </span>
+          ) : (
+            <span className="text-gray-500 dark:text-gray-400">🤝 Empate!</span>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // ---- Loading State ----
   if (loading && !stats) {
@@ -868,6 +978,37 @@ export function ReviewStatsPage() {
           />
         </div>
       </div>
+
+      {/* T33.5 — Seção de Comparação Compartilhada */}
+      {sharedReviews.length > 0 && (
+        <div className="mt-8">
+          <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+            🤝 Revisões Compartilhadas
+          </h2>
+          {sharedStatsLoading && sharedStatsMap.size === 0 ? (
+            <div className="flex items-center justify-center py-8">
+              <Spinner size="sm" />
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {sharedReviews.map((review) => {
+                const sharedStats = sharedStatsMap.get(review.id);
+                if (!sharedStats) {
+                  return (
+                    <div
+                      key={review.id}
+                      className="rounded-2xl border border-gray-200 p-4 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-center py-8"
+                    >
+                      <Spinner size="sm" />
+                    </div>
+                  );
+                }
+                return <SharedReviewComparisonCard key={review.id} sharedStats={sharedStats} />;
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Loading overlay para refetch */}
       {loading && stats && (

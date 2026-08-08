@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { twMerge } from 'tailwind-merge';
 import { useAuth } from '../../hooks/useAuth';
@@ -6,6 +6,7 @@ import { useCalendarSessions } from '../../hooks/useCalendarSessions';
 import { useCalendarGrid } from '../../hooks/useCalendarGrid';
 import { Button } from '../ui/Button';
 import { formatHours } from '../ui/TimeInput';
+import { container } from '../../../di/container';
 import type { CalendarDayFull } from '../../../core/entities/ProgressData';
 
 const MONTHS = [
@@ -189,6 +190,46 @@ export function UnifiedCalendar({
 
   const [selectedDay, setSelectedDay] = useState<CalendarDayFull | null>(null);
   const [hoveredDay, setHoveredDay] = useState<string | null>(null);
+
+  // ---- T33.1/T33.2: Cache de resolução de emails para completedBy/userId ----
+  const emailCache = useRef<Map<string, string>>(new Map());
+
+  const resolveEmail = useCallback(async (uid: string): Promise<string> => {
+    if (emailCache.current.has(uid)) {
+      return emailCache.current.get(uid)!;
+    }
+    try {
+      const email = await container.sharingRepository.getUserEmail(uid);
+      const resolved = email ?? uid;
+      emailCache.current.set(uid, resolved);
+      return resolved;
+    } catch {
+      emailCache.current.set(uid, uid);
+      return uid;
+    }
+  }, []);
+
+  // Estado para emails resolvidos das sessions no modal
+  const [resolvedEmails, setResolvedEmails] = useState<Map<string, string>>(new Map());
+
+  // Resolver emails quando selectedDay mudar
+  useEffect(() => {
+    if (!selectedDay) return;
+    const uids = new Set<string>();
+    for (const s of selectedDay.studySessions) {
+      if (s.completedBy && s.completedBy !== user?.id) uids.add(s.completedBy);
+      if (s.userId && s.userId !== user?.id) uids.add(s.userId);
+    }
+    for (const r of selectedDay.reviewSessions) {
+      if (r.userId && r.userId !== user?.id) uids.add(r.userId);
+    }
+    if (uids.size === 0) return;
+    Promise.all([...uids].map((uid) => resolveEmail(uid))).then((emails) => {
+      const map = new Map<string, string>();
+      [...uids].forEach((uid, i) => map.set(uid, emails[i]));
+      setResolvedEmails(map);
+    });
+  }, [selectedDay, user?.id, resolveEmail]);
 
   const loadData = useCallback(() => {
     if (user) {
@@ -443,6 +484,23 @@ export function UnifiedCalendar({
             {gridDays.map((day) => {
               const isPadding = paddingBeforeSet.has(day.date) || paddingAfterSet.has(day.date);
               const hasSessions = day.studySessions.length > 0;
+
+              // ---- T33.8: Separar sessões próprias vs parceiro para indicadores visuais ----
+              const ownSessions = day.studySessions.filter(
+                (s) => !s.userId || s.userId === user?.id,
+              );
+              const partnerSessions = day.studySessions.filter(
+                (s) => s.userId && s.userId !== user?.id,
+              );
+
+              const ownCompleted = ownSessions.filter((s) => s.completed).length;
+              const partnerCompleted = partnerSessions.filter((s) => s.completed).length;
+              const allOwnDone = ownSessions.length > 0 && ownCompleted === ownSessions.length;
+              const allPartnerDone =
+                partnerSessions.length > 0 && partnerCompleted === partnerSessions.length;
+              const bothCompleted = allOwnDone && allPartnerDone;
+              const onlyPartnerDone = allPartnerDone && !allOwnDone && ownSessions.length > 0;
+
               const totalActivities = day.studySessions.length + day.reviewSessions.length;
               const intensity = totalActivities;
 
@@ -455,15 +513,29 @@ export function UnifiedCalendar({
                   hasSessions &&
                   'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50',
                 !isPadding && !hasSessions && 'cursor-default',
-                !isPadding && hasSessions && day.allCompleted && 'bg-green-50 dark:bg-green-900/20',
+                // Ambos concluíram: verde intenso
+                !isPadding && hasSessions && bothCompleted && 'bg-green-100 dark:bg-green-900/30',
+                // Todos concluídos (só usuário logado tem sessões): verde claro
+                !isPadding &&
+                  hasSessions &&
+                  day.allCompleted &&
+                  !bothCompleted &&
+                  partnerSessions.length === 0 &&
+                  'bg-green-50 dark:bg-green-900/20',
+                // Só parceiro concluiu: azul claro
+                !isPadding && hasSessions && onlyPartnerDone && 'bg-blue-50 dark:bg-blue-900/20',
+                // Parcial (ambos têm sessões mas nem todos concluíram): âmbar
                 !isPadding &&
                   hasSessions &&
                   day.anyCompleted &&
                   !day.allCompleted &&
+                  !onlyPartnerDone &&
                   'bg-amber-50 dark:bg-amber-900/20',
+                // Nenhum concluído: brand (comportamento atual)
                 !isPadding &&
                   hasSessions &&
                   !day.anyCompleted &&
+                  !onlyPartnerDone &&
                   'bg-brand-50 dark:bg-brand-900/10',
                 !isPadding &&
                   intensity >= 6 &&
@@ -498,12 +570,24 @@ export function UnifiedCalendar({
 
                   {day.hasActivities && (
                     <div className="flex flex-wrap gap-0.5 justify-center max-w-[80%]">
-                      {day.studySessions.slice(0, 3).map((session, idx) => (
+                      {/* T33.2: Dots de sessões próprias (preenchidos) e parceiro (borda tracejada) */}
+                      {ownSessions.slice(0, 2).map((session, idx) => (
                         <span
-                          key={`study-${idx}`}
+                          key={`own-${idx}`}
                           className="w-2 h-2 rounded-full flex-shrink-0"
                           style={{ backgroundColor: session.topicColor }}
-                          title={`Estudo: ${session.topicName}`}
+                          title={`Estudo: ${session.topicName} (você)`}
+                        />
+                      ))}
+                      {partnerSessions.slice(0, 2).map((session, idx) => (
+                        <span
+                          key={`partner-${idx}`}
+                          className="w-2 h-2 rounded-full border-2 border-dashed flex-shrink-0"
+                          style={{
+                            borderColor: session.topicColor,
+                            backgroundColor: session.completed ? session.topicColor : 'transparent',
+                          }}
+                          title={`Estudo: ${session.topicName} (parceiro)`}
                         />
                       ))}
                       {day.reviewSessions.slice(0, 3).map((review, idx) => (
@@ -526,8 +610,19 @@ export function UnifiedCalendar({
                     </div>
                   )}
 
-                  {!isPadding && day.allCompleted && hasSessions && (
-                    <span className="text-[10px] text-green-600 dark:text-green-400">✓</span>
+                  {/* T33.8: Indicadores por célula */}
+                  {!isPadding && bothCompleted && (
+                    <span className="text-[10px] text-green-600 dark:text-green-400">🤝</span>
+                  )}
+                  {!isPadding &&
+                    day.allCompleted &&
+                    !bothCompleted &&
+                    partnerSessions.length === 0 &&
+                    hasSessions && (
+                      <span className="text-[10px] text-green-600 dark:text-green-400">✓</span>
+                    )}
+                  {!isPadding && onlyPartnerDone && (
+                    <span className="text-[10px] text-blue-600 dark:text-blue-400">👤✓</span>
                   )}
 
                   {hoveredDay === day.date && !isPadding && day.hasActivities && (
@@ -636,6 +731,14 @@ export function UnifiedCalendar({
                   <div className="space-y-2">
                     {selectedDay.studySessions.map((session) => {
                       const isOwnSession = !session.userId || session.userId === user?.id;
+                      const completedByEmail =
+                        session.completed && session.completedBy && session.completedBy !== user?.id
+                          ? (resolvedEmails.get(session.completedBy) ?? session.completedBy)
+                          : null;
+                      const ownerEmail =
+                        !isOwnSession && session.userId
+                          ? (resolvedEmails.get(session.userId) ?? session.userId)
+                          : null;
                       return (
                         <div
                           key={`${session.sessionId}-${session.userId ?? user?.id}`}
@@ -647,15 +750,32 @@ export function UnifiedCalendar({
                           )}
                         >
                           <div
-                            className="w-3 h-3 rounded-full flex-shrink-0 mt-1.5"
-                            style={{ backgroundColor: session.topicColor }}
+                            className={twMerge(
+                              'flex-shrink-0 mt-1.5',
+                              isOwnSession
+                                ? 'w-3 h-3 rounded-full'
+                                : 'w-3 h-3 rounded-full border-2 border-dashed',
+                            )}
+                            style={
+                              isOwnSession
+                                ? { backgroundColor: session.topicColor }
+                                : {
+                                    borderColor: session.topicColor,
+                                    backgroundColor: 'transparent',
+                                  }
+                            }
                           />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                 {session.topicName}
                               </p>
-                              {!isOwnSession && (
+                              {!isOwnSession && ownerEmail && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:text-blue-300">
+                                  👤 {ownerEmail}
+                                </span>
+                              )}
+                              {!isOwnSession && !ownerEmail && (
                                 <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:text-blue-300">
                                   👤 Outro
                                 </span>
@@ -664,14 +784,19 @@ export function UnifiedCalendar({
                             <p className="text-xs text-gray-500 dark:text-gray-400">
                               {formatHours(session.hoursPerDay)}/dia
                             </p>
-                            {session.completed && session.completedAt && (
+                            {session.completed && isOwnSession && session.completedAt && (
                               <p className="text-xs text-green-600 dark:text-green-400 mt-0.5">
-                                Concluído em {formatDateTime(session.completedAt)}
+                                ✅ Você concluiu em {formatDateTime(session.completedAt)}
+                              </p>
+                            )}
+                            {session.completed && completedByEmail && (
+                              <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
+                                ✅ Concluído por {completedByEmail}
                               </p>
                             )}
                             {!session.completed && !isOwnSession && (
                               <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                                Pendente
+                                ⏳ Pendente — {ownerEmail ?? 'outro'}
                               </p>
                             )}
                             {isOwnSession && (

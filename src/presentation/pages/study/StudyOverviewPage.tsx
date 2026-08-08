@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { twMerge } from 'tailwind-merge';
 import { useAuth } from '../../hooks/useAuth';
 import { useStudyProgress } from '../../hooks/useStudyProgress';
+import { useSharedStudyProgress } from '../../hooks/useSharedStudyProgress';
+import { SharedProgressCard } from '../../components/study/SharedProgressCard';
 import { ProgressBar } from '../../components/ui/ProgressBar';
 import { Spinner } from '../../components/ui/Spinner';
 import { Button } from '../../components/ui/Button';
@@ -11,6 +13,13 @@ export function StudyOverviewPage() {
   const { user } = useAuth();
   const { progress, topics, loading, error, loadProgress } = useStudyProgress();
   const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
+
+  // T33.4 — Shared progress hook
+  const {
+    sharedProgressMap,
+    loading: sharedLoading,
+    loadSharedProgress,
+  } = useSharedStudyProgress();
 
   const loadData = useCallback(() => {
     if (user) {
@@ -21,6 +30,13 @@ export function StudyOverviewPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // T33.4 — Carregar progresso compartilhado após tópicos carregarem
+  useEffect(() => {
+    if (user && topics.length > 0) {
+      loadSharedProgress(user.id, topics);
+    }
+  }, [user, topics, loadSharedProgress]);
 
   const toggleTopicFilter = (topicId: string) => {
     setSelectedTopicIds((prev) =>
@@ -35,6 +51,12 @@ export function StudyOverviewPage() {
     if (selectedTopicIds.length === 0) return progress.byTopic;
     return progress.byTopic.filter((tp) => selectedTopicIds.includes(tp.topicId));
   }, [progress, selectedTopicIds]);
+
+  // Separar tópicos compartilhados dos próprios
+  const sharedTopics = useMemo(
+    () => topics.filter((t) => t.isShared || (t.sharedWith && t.sharedWith.length > 0)),
+    [topics],
+  );
 
   // ---- Loading State ----
   if (loading) {
@@ -216,6 +238,47 @@ export function StudyOverviewPage() {
               </div>
             )}
           </div>
+
+          {/* T33.4 — Seção de Progresso Compartilhado */}
+          {sharedTopics.length > 0 && (
+            <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                🤝 Compartilhados com você
+              </h2>
+              {sharedLoading && sharedProgressMap.size === 0 ? (
+                <div className="flex items-center justify-center py-8">
+                  <Spinner size="sm" />
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {sharedTopics.map((topic) => {
+                    const sharedProgress = sharedProgressMap.get(topic.id);
+                    if (!sharedProgress) {
+                      return (
+                        <div
+                          key={topic.id}
+                          className="rounded-xl border border-gray-200 p-4 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-center py-8"
+                        >
+                          <Spinner size="sm" />
+                        </div>
+                      );
+                    }
+                    return (
+                      <SharedProgressCard
+                        key={topic.id}
+                        topicId={sharedProgress.topicId}
+                        topicName={sharedProgress.topicName}
+                        topicColor={sharedProgress.topicColor}
+                        myProgress={sharedProgress.myProgress}
+                        partnerProgress={sharedProgress.partnerProgress}
+                        combinedProgress={sharedProgress.combinedProgress}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
     </div>

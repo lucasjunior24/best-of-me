@@ -7,7 +7,7 @@
   <img src="https://img.shields.io/badge/Firebase-10.12-%23FFCA28?logo=firebase" alt="Firebase" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-3.4-%2306B6D4?logo=tailwindcss" alt="Tailwind CSS" />
   <img src="https://img.shields.io/badge/Vite-5.3-%23646CFF?logo=vite" alt="Vite" />
-<img src="https://img.shields.io/badge/Sprints-222%2F222-%2322C55E" alt="Progress" />
+<img src="https://img.shields.io/badge/Sprints-270%2F288-%2322C55E" alt="Progress" />
 </p>
 
 <p align="center">
@@ -278,7 +278,7 @@ O projeto segue os princípios da **Clean Architecture**:
 | Sprint 33 — Feature 1 Visibilidade Mútua (UI) | ⬜ Pendente | 0/8 |
 | Sprint 34 — Feature 2 Calendário Interativo (Backend) | ⬜ Pendente | 0/8 |
 | Sprint 35 — Feature 2 Calendário Interativo (UI) | ⬜ Pendente | 0/9 |
-| **TOTAL** | | **263/288** |
+| **TOTAL** | | **270/288** |
 
 ---
 
