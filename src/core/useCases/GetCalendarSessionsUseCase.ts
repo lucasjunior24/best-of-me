@@ -84,6 +84,7 @@ export class GetCalendarSessionsUseCase {
               date: session.date,
               duration: session.duration,
               createdBy: session.userId,
+              completedBy: session.completedBy,
             }));
             await this.studyRepository.scheduleSessions(mirroredSessions);
           }
@@ -105,7 +106,13 @@ export class GetCalendarSessionsUseCase {
     // Para cada tópico compartilhado, buscar sessions do outro usuário também
     const otherUserSessionsMap = new Map<
       string,
-      Array<{ sessionId: string; userId: string; completed: boolean; completedAt?: Date }>
+      Array<{
+        sessionId: string;
+        userId: string;
+        completed: boolean;
+        completedAt?: Date;
+        completedBy?: string;
+      }>
     >();
     // dateKey → sessions do outro usuário
     const otherUserSessionsByDate = new Map<
@@ -116,6 +123,7 @@ export class GetCalendarSessionsUseCase {
         topicId: string;
         completed: boolean;
         completedAt?: Date;
+        completedBy?: string;
       }>
     >();
 
@@ -138,6 +146,7 @@ export class GetCalendarSessionsUseCase {
             userId: ownerId,
             completed: s.completed,
             completedAt: s.completedAt,
+            completedBy: s.completedBy,
           });
 
           if (!otherUserSessionsByDate.has(s.date)) {
@@ -149,6 +158,7 @@ export class GetCalendarSessionsUseCase {
             topicId: s.topicId,
             completed: s.completed,
             completedAt: s.completedAt,
+            completedBy: s.completedBy,
           });
         }
       } catch {
@@ -176,6 +186,7 @@ export class GetCalendarSessionsUseCase {
               userId: invitedId,
               completed: s.completed,
               completedAt: s.completedAt,
+              completedBy: s.completedBy,
             });
 
             if (!otherUserSessionsByDate.has(s.date)) {
@@ -187,6 +198,7 @@ export class GetCalendarSessionsUseCase {
               topicId: s.topicId,
               completed: s.completed,
               completedAt: s.completedAt,
+              completedBy: s.completedBy,
             });
           }
         } catch {
@@ -235,6 +247,7 @@ export class GetCalendarSessionsUseCase {
         hoursPerDay: topic.hoursPerDay,
         notes: session.notes,
         userId: session.userId,
+        completedBy: session.completedBy,
       });
     }
 
@@ -264,6 +277,7 @@ export class GetCalendarSessionsUseCase {
             completedAt: os.completedAt,
             hoursPerDay: topic.hoursPerDay,
             userId: os.userId,
+            completedBy: os.completedBy,
           });
         }
       }

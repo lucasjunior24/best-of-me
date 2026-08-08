@@ -264,13 +264,21 @@ O projeto segue os princípios da **Clean Architecture**:
 | Sprint 19 — Bug Modal Calendário | ✅ Concluída | 2/2 |
 | Sprint 20 — Input HH:MM | ✅ Concluída | 4/4 |
 | Sprint 21 — Core Compartilhamento | ✅ Concluída | 8/8 |
-| **Sprint 22 — Firebase+UI Compartilhamento** | **✅ Concluída** | **10/10** |
+| Sprint 22 — Firebase+UI Compartilhamento** | ✅ Concluída | 10/10 |
 | Sprint 23 — Comentários/Anotações | ✅ Concluída | 5/5 |
 | Sprint 24 — DatePicker Revisões | ✅ Concluída | 10/10 |
 | Sprint 25 — Compartilhamento Revisões | ✅ Concluída | 9/9 |
 | Sprint 26 — Desempenho Cruzado | ✅ Concluída | 7/7 |
 | Sprint 27 — Calendário Home + Edição + Nav | ✅ Concluída | 9/9 |
-| **TOTAL** | | **222/222** |
+| Sprint 28 — Core Resumos | ✅ Concluída | 9/9 |
+| Sprint 29 — Adapter Firebase Resumos | ✅ Concluída | 6/6 |
+| Sprint 30 — UI CRUD Resumos + Filtros | ✅ Concluída | 10/10 |
+| Sprint 31 — UI Visualização/Edição + Testes | ✅ Concluída | 7/7 |
+| Sprint 32 — Feature 1 Visibilidade Mútua (Backend) | ✅ Concluída | 9/9 |
+| Sprint 33 — Feature 1 Visibilidade Mútua (UI) | ⬜ Pendente | 0/8 |
+| Sprint 34 — Feature 2 Calendário Interativo (Backend) | ⬜ Pendente | 0/8 |
+| Sprint 35 — Feature 2 Calendário Interativo (UI) | ⬜ Pendente | 0/9 |
+| **TOTAL** | | **263/288** |
 
 ---
 

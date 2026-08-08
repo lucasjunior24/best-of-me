@@ -59,6 +59,8 @@ function sessionFromDoc(snapshot: QueryDocumentSnapshot<DocumentData>): StudySes
     duration: data.duration,
     createdAt: parseTimestamp(data.createdAt as Timestamp),
     notes: data.notes ?? undefined,
+    createdBy: data.createdBy ?? undefined,
+    completedBy: data.completedBy ?? undefined,
   };
 }
 
@@ -299,6 +301,7 @@ export class FirebaseStudyRepository implements IStudyRepository {
     const updatePayload: Record<string, unknown> = {
       completed: !currentlyCompleted,
       completedAt: currentlyCompleted ? null : serverTimestamp(),
+      completedBy: currentlyCompleted ? null : userId,
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

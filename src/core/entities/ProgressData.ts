@@ -29,6 +29,8 @@ export interface CalendarDay {
     notes?: string;
     /** ID do usuário dono desta sessão (para desempenho cruzado em itens compartilhados) */
     userId?: string;
+    /** ID do usuário que concluiu esta sessão (para visibilidade mútua) */
+    completedBy?: string;
   }>;
   allCompleted: boolean;
   anyCompleted: boolean;

@@ -29,3 +29,8 @@ export { DeleteSummaryUseCase } from './DeleteSummaryUseCase';
 export { GetSummariesUseCase } from './GetSummariesUseCase';
 export type { GetSummariesFilters } from './GetSummariesUseCase';
 export { GetSummaryByIdUseCase } from './GetSummaryByIdUseCase';
+// Shared progress use cases (Sprint 32)
+export { GetSharedStudyProgressUseCase } from './GetSharedStudyProgressUseCase';
+export type { SharedTopicProgress } from './GetSharedStudyProgressUseCase';
+export { GetSharedReviewStatsUseCase } from './GetSharedReviewStatsUseCase';
+export type { SharedReviewStats } from './GetSharedReviewStatsUseCase';

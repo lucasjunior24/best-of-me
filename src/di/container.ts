@@ -33,7 +33,8 @@ import { UpdateSummaryUseCase } from '../core/useCases/UpdateSummaryUseCase';
 import { DeleteSummaryUseCase } from '../core/useCases/DeleteSummaryUseCase';
 import { GetSummariesUseCase } from '../core/useCases/GetSummariesUseCase';
 import { GetSummaryByIdUseCase } from '../core/useCases/GetSummaryByIdUseCase';
-
+import { GetSharedStudyProgressUseCase } from '../core/useCases/GetSharedStudyProgressUseCase';
+import { GetSharedReviewStatsUseCase } from '../core/useCases/GetSharedReviewStatsUseCase';
 const toastService = new HotToastService();
 const studyRepository = new FirebaseStudyRepository();
 const reviewRepository = new FirebaseReviewRepository();
@@ -100,6 +101,10 @@ const useCases = {
   deleteSummary: new DeleteSummaryUseCase(summaryRepository, toastService),
   getSummaries: new GetSummariesUseCase(summaryRepository),
   getSummaryById: new GetSummaryByIdUseCase(summaryRepository),
+
+  // Shared progress use cases (Sprint 32)
+  sharedStudyProgress: new GetSharedStudyProgressUseCase(studyRepository, sharingRepository),
+  sharedReviewStats: new GetSharedReviewStatsUseCase(reviewRepository, reviewSharingRepository),
 };
 
 const container = {
