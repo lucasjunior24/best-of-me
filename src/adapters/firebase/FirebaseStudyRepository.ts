@@ -210,7 +210,7 @@ export class FirebaseStudyRepository implements IStudyRepository {
         const id = uuidv4();
         const docRef = doc(this.sessionsCollection(userId), id);
 
-        const docData = {
+        const docData: Record<string, unknown> = {
           userId: session.userId,
           topicId: session.topicId,
           date: session.date,
@@ -218,6 +218,10 @@ export class FirebaseStudyRepository implements IStudyRepository {
           completed: false,
           createdAt: now,
         };
+
+        if ((session as { createdBy?: string }).createdBy !== undefined) {
+          docData.createdBy = (session as { createdBy?: string }).createdBy;
+        }
 
         batch.set(docRef, docData);
         chunkResults.push({

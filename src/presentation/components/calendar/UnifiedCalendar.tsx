@@ -8,6 +8,7 @@ import { Button } from '../ui/Button';
 import { formatHours } from '../ui/TimeInput';
 import { container } from '../../../di/container';
 import type { CalendarDayFull } from '../../../core/entities/ProgressData';
+import { AddActivityForm } from './AddActivityForm';
 
 const MONTHS = [
   'Janeiro',
@@ -190,6 +191,8 @@ export function UnifiedCalendar({
 
   const [selectedDay, setSelectedDay] = useState<CalendarDayFull | null>(null);
   const [hoveredDay, setHoveredDay] = useState<string | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [recentlyAddedDates, setRecentlyAddedDates] = useState<Set<string>>(new Set());
 
   // ---- T33.1/T33.2: Cache de resolução de emails para completedBy/userId ----
   const emailCache = useRef<Map<string, string>>(new Map());
@@ -254,9 +257,7 @@ export function UnifiedCalendar({
 
   const handleDayClick = (day: CalendarDayFull) => {
     if (!day.isCurrentMonth) return;
-    if (day.hasActivities) {
-      setSelectedDay(day);
-    }
+    setSelectedDay(day);
   };
 
   const handleTopicFilter = (topicId: string) => {
@@ -544,6 +545,10 @@ export function UnifiedCalendar({
                   intensity >= 3 &&
                   intensity <= 5 &&
                   'ring-1 ring-gray-300 dark:ring-gray-600',
+                // T35.6: Destaque de pulse para dia recém-adicionado
+                !isPadding &&
+                  recentlyAddedDates.has(day.date) &&
+                  'animate-pulse ring-2 ring-brand-400 dark:ring-brand-500',
               );
 
               return (
@@ -552,7 +557,7 @@ export function UnifiedCalendar({
                   onClick={() => handleDayClick(day)}
                   onMouseEnter={() => setHoveredDay(day.date)}
                   onMouseLeave={() => setHoveredDay(null)}
-                  disabled={isPadding || !day.hasActivities}
+                  disabled={isPadding}
                   className={cellClass}
                   aria-label={`Dia ${day.dayNumber}${isPadding ? ' (mês adjacente)' : ''}`}
                 >
@@ -699,25 +704,42 @@ export function UnifiedCalendar({
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 {formatLongDate(selectedDay.date)}
               </h3>
-              <button
-                onClick={() => setSelectedDay(null)}
-                className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                aria-label="Fechar"
-              >
-                <svg
-                  className="w-5 h-5 text-gray-500"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="inline-flex items-center gap-1 rounded-lg bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-100 dark:bg-brand-900/20 dark:text-brand-400 dark:hover:bg-brand-900/40 transition-colors"
+                  aria-label="Adicionar atividade"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4v16m8-8H4"
+                    />
+                  </svg>
+                  Adicionar
+                </button>
+                <button
+                  onClick={() => setSelectedDay(null)}
+                  className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  aria-label="Fechar"
+                >
+                  <svg
+                    className="w-5 h-5 text-gray-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             {/* Conteúdo */}
@@ -908,13 +930,65 @@ export function UnifiedCalendar({
 
               {selectedDay.studySessions.length === 0 &&
                 selectedDay.reviewSessions.length === 0 && (
-                  <p className="text-gray-500 dark:text-gray-400 text-center py-4">
-                    Nenhuma atividade para este dia.
-                  </p>
+                  <div className="flex flex-col items-center gap-3 py-6">
+                    <p className="text-gray-500 dark:text-gray-400 text-center">
+                      Nenhuma atividade para este dia.
+                    </p>
+                    <button
+                      onClick={() => setShowAddForm(true)}
+                      className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 dark:bg-brand-500 dark:hover:bg-brand-600 transition-colors"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 4v16m8-8H4"
+                        />
+                      </svg>
+                      Adicionar Atividade
+                    </button>
+                  </div>
                 )}
             </div>
           </div>
         </div>
+      )}
+
+      {/* T35.3/T35.4: Modal de Adicionar Atividade */}
+      {showAddForm && selectedDay && user && (
+        <AddActivityForm
+          date={selectedDay.date}
+          userId={user.id}
+          onClose={() => setShowAddForm(false)}
+          onSuccess={() => {
+            setShowAddForm(false);
+            // T35.6: Marcar o dia como recentemente adicionado para animação
+            setRecentlyAddedDates((prev) => {
+              const next = new Set(prev);
+              next.add(selectedDay.date);
+              // Limpar o destaque após 3 segundos
+              setTimeout(() => {
+                setRecentlyAddedDates((current) => {
+                  const updated = new Set(current);
+                  updated.delete(selectedDay.date);
+                  return updated;
+                });
+              }, 3000);
+              return next;
+            });
+            // T35.5: Recarregar o calendário
+            if (user) {
+              loadMonth(currentMonth.year, currentMonth.month, user.id);
+            }
+            setSelectedDay(null);
+          }}
+        />
       )}
     </div>
   );

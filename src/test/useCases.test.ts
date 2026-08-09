@@ -10,6 +10,8 @@ import { UpdateSummaryUseCase } from '../core/useCases/UpdateSummaryUseCase';
 import { DeleteSummaryUseCase } from '../core/useCases/DeleteSummaryUseCase';
 import { GetSummariesUseCase } from '../core/useCases/GetSummariesUseCase';
 import { GetSummaryByIdUseCase } from '../core/useCases/GetSummaryByIdUseCase';
+import { AddStudyDayUseCase } from '../core/useCases/AddStudyDayUseCase';
+import { AddReviewDayUseCase } from '../core/useCases/AddReviewDayUseCase';
 import { ValidationError, NotFoundError } from '../shared/errorHandler';
 
 function createMockRepo() {
@@ -720,5 +722,418 @@ describe('GetSummaryByIdUseCase', () => {
 
     const useCase = new GetSummaryByIdUseCase(repo);
     await expect(useCase.execute('user-1', 'nonexistent')).rejects.toThrow(NotFoundError);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Sprint 34 — Testes de AddStudyDayUseCase e AddReviewDayUseCase (T34.8)
+// ---------------------------------------------------------------------------
+
+function createMockSharingRepo() {
+  return {
+    shareTopic: vi.fn(),
+    getPendingInvitations: vi.fn(),
+    acceptInvitation: vi.fn(),
+    rejectInvitation: vi.fn(),
+    getSharedTopics: vi.fn(),
+    removeShare: vi.fn(),
+    findExistingShare: vi.fn(),
+    getUserEmail: vi.fn(),
+    removeShareForTopic: vi.fn(),
+  };
+}
+
+function createMockReviewRepo() {
+  return {
+    createReview: vi.fn(),
+    updateReview: vi.fn(),
+    deleteReview: vi.fn(),
+    getReviewsByUser: vi.fn(),
+    getReviewById: vi.fn(),
+    createOrUpdateQuestionnaire: vi.fn(),
+    getQuestionnairesByReview: vi.fn(),
+    getQuestionnaireByDate: vi.fn(),
+    getReviewSessionsByDateRange: vi.fn(),
+    getReviewStats: vi.fn(),
+  };
+}
+
+// ---- AddStudyDayUseCase ----
+
+describe('AddStudyDayUseCase', () => {
+  it('deve criar sessions e incrementar totalDays para datas válidas', async () => {
+    const repo = createMockRepo();
+    const sharingRepo = createMockSharingRepo();
+    const toast = createMockToast();
+
+    const existingTopic = {
+      id: 'topic-1',
+      userId: 'user-1',
+      name: 'React',
+      color: '#3b82f6',
+      totalDays: 3,
+      hoursPerDay: 2,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    repo.getTopicsByUser.mockResolvedValue([existingTopic]);
+    repo.getSessionsByDateRange.mockResolvedValue([]);
+    repo.scheduleSessions.mockResolvedValue([]);
+    repo.updateTotalDays.mockResolvedValue({
+      ...existingTopic,
+      totalDays: 4,
+    });
+
+    const useCase = new AddStudyDayUseCase(repo, sharingRepo, toast);
+    await useCase.execute('user-1', 'topic-1', ['2026-08-10']);
+
+    expect(repo.scheduleSessions).toHaveBeenCalledWith([
+      {
+        userId: 'user-1',
+        topicId: 'topic-1',
+        date: '2026-08-10',
+        duration: 120,
+        createdBy: 'user-1',
+      },
+    ]);
+    expect(repo.updateTotalDays).toHaveBeenCalledWith('topic-1', 4, 'user-1');
+    expect(toast.success).toHaveBeenCalledWith('1 dia(s) adicionado(s) ao tema "React"!');
+  });
+
+  it('deve ignorar datas duplicadas (já existentes)', async () => {
+    const repo = createMockRepo();
+    const sharingRepo = createMockSharingRepo();
+    const toast = createMockToast();
+
+    const existingTopic = {
+      id: 'topic-1',
+      userId: 'user-1',
+      name: 'React',
+      color: '#3b82f6',
+      totalDays: 3,
+      hoursPerDay: 2,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    repo.getTopicsByUser.mockResolvedValue([existingTopic]);
+    repo.getSessionsByDateRange.mockResolvedValue([
+      {
+        id: 'existing-session',
+        userId: 'user-1',
+        topicId: 'topic-1',
+        date: '2026-08-10',
+        completed: false,
+        createdAt: new Date(),
+      },
+    ]);
+
+    const useCase = new AddStudyDayUseCase(repo, sharingRepo, toast);
+    await useCase.execute('user-1', 'topic-1', ['2026-08-10']);
+
+    // scheduleSessions não deve ser chamado (todas as datas são duplicadas)
+    expect(repo.scheduleSessions).not.toHaveBeenCalled();
+    expect(toast.info).toHaveBeenCalledWith('As datas selecionadas já possuem sessões agendadas.');
+  });
+
+  it('deve rejeitar se nenhuma data fornecida', async () => {
+    const repo = createMockRepo();
+    const sharingRepo = createMockSharingRepo();
+    const toast = createMockToast();
+
+    const useCase = new AddStudyDayUseCase(repo, sharingRepo, toast);
+    await expect(useCase.execute('user-1', 'topic-1', [])).rejects.toThrow(ValidationError);
+  });
+
+  it('deve rejeitar data com formato inválido', async () => {
+    const repo = createMockRepo();
+    const sharingRepo = createMockSharingRepo();
+    const toast = createMockToast();
+
+    const useCase = new AddStudyDayUseCase(repo, sharingRepo, toast);
+    await expect(useCase.execute('user-1', 'topic-1', ['not-a-date'])).rejects.toThrow(
+      ValidationError,
+    );
+  });
+
+  it('deve lançar NotFoundError se tópico não pertencer ao usuário nem compartilhado', async () => {
+    const repo = createMockRepo();
+    const sharingRepo = createMockSharingRepo();
+    const toast = createMockToast();
+
+    repo.getTopicsByUser.mockResolvedValue([]); // usuário não tem tópicos
+    sharingRepo.getSharedTopics.mockResolvedValue([]); // nem compartilhados
+
+    const useCase = new AddStudyDayUseCase(repo, sharingRepo, toast);
+    await expect(useCase.execute('user-1', 'nonexistent', ['2026-08-10'])).rejects.toThrow(
+      NotFoundError,
+    );
+  });
+
+  it('deve espelhar sessions para invited users se tópico compartilhado', async () => {
+    const repo = createMockRepo();
+    const sharingRepo = createMockSharingRepo();
+    const toast = createMockToast();
+
+    const existingTopic = {
+      id: 'topic-1',
+      userId: 'owner-1',
+      name: 'React',
+      color: '#3b82f6',
+      totalDays: 3,
+      hoursPerDay: 2,
+      sharedWith: ['user-2'],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    repo.getTopicsByUser.mockResolvedValue([existingTopic]);
+    repo.getSessionsByDateRange.mockResolvedValue([]); // sem duplicatas
+    repo.scheduleSessions.mockResolvedValue([]);
+    repo.updateTotalDays.mockResolvedValue({
+      ...existingTopic,
+      totalDays: 4,
+    });
+
+    const useCase = new AddStudyDayUseCase(repo, sharingRepo, toast);
+    await useCase.execute('owner-1', 'topic-1', ['2026-08-10']);
+
+    // scheduleSessions deve ser chamado 2 vezes: owner + convidado
+    expect(repo.scheduleSessions).toHaveBeenCalledTimes(2);
+
+    // Primeira chamada: sessions do owner
+    expect(repo.scheduleSessions).toHaveBeenNthCalledWith(1, [
+      {
+        userId: 'owner-1',
+        topicId: 'topic-1',
+        date: '2026-08-10',
+        duration: 120,
+        createdBy: 'owner-1',
+      },
+    ]);
+
+    // Segunda chamada: sessions espelhadas para o convidado
+    expect(repo.scheduleSessions).toHaveBeenNthCalledWith(2, [
+      {
+        userId: 'user-2',
+        topicId: 'topic-1',
+        date: '2026-08-10',
+        duration: 120,
+        createdBy: 'owner-1',
+      },
+    ]);
+  });
+
+  it('deve permitir que usuário convidado adicione dias a tópico compartilhado', async () => {
+    const repo = createMockRepo();
+    const sharingRepo = createMockSharingRepo();
+    const toast = createMockToast();
+
+    const sharedTopic = {
+      id: 'topic-1',
+      userId: 'owner-1',
+      name: 'React',
+      color: '#3b82f6',
+      totalDays: 3,
+      hoursPerDay: 2,
+      sharedWith: ['user-2'],
+      ownerUserId: 'owner-1',
+      isShared: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    repo.getTopicsByUser.mockResolvedValue([]); // convidado não tem tópicos próprios
+    sharingRepo.getSharedTopics.mockResolvedValue([sharedTopic]);
+    repo.getSessionsByDateRange.mockResolvedValue([]); // sem duplicatas
+    repo.scheduleSessions.mockResolvedValue([]);
+    repo.updateTotalDays.mockResolvedValue({
+      ...sharedTopic,
+      totalDays: 4,
+    });
+
+    const useCase = new AddStudyDayUseCase(repo, sharingRepo, toast);
+    await useCase.execute('user-2', 'topic-1', ['2026-08-15']);
+
+    // Deve criar session para o convidado (user-2) com userId = user-2
+    expect(repo.scheduleSessions).toHaveBeenCalledWith([
+      {
+        userId: 'user-2',
+        topicId: 'topic-1',
+        date: '2026-08-15',
+        duration: 120,
+        createdBy: 'user-2',
+      },
+    ]);
+    // totalDays deve ser atualizado com o ownerUserId (owner-1)
+    expect(repo.updateTotalDays).toHaveBeenCalledWith('topic-1', 4, 'owner-1');
+  });
+});
+
+// ---- AddReviewDayUseCase ----
+
+describe('AddReviewDayUseCase', () => {
+  it('deve adicionar datas ao scheduledDates de uma revisão', async () => {
+    const repo = createMockReviewRepo();
+    const toast = createMockToast();
+
+    const existingReview = {
+      id: 'review-1',
+      userId: 'user-1',
+      name: 'Revisão de React',
+      color: '#3b82f6',
+      scheduledDates: ['2026-08-01', '2026-08-05'],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    repo.getReviewById.mockResolvedValue(existingReview);
+    const updatedReview = {
+      ...existingReview,
+      scheduledDates: ['2026-08-01', '2026-08-05', '2026-08-10'],
+    };
+    repo.updateReview.mockResolvedValue(updatedReview);
+
+    const useCase = new AddReviewDayUseCase(repo, toast);
+    const result = await useCase.execute('user-1', 'review-1', ['2026-08-10']);
+
+    expect(result.scheduledDates).toEqual(['2026-08-01', '2026-08-05', '2026-08-10']);
+    expect(repo.updateReview).toHaveBeenCalledWith('review-1', {
+      scheduledDates: ['2026-08-01', '2026-08-05', '2026-08-10'],
+    });
+    expect(toast.success).toHaveBeenCalledWith(
+      '1 dia(s) adicionado(s) à revisão "Revisão de React"!',
+    );
+  });
+
+  it('deve remover datas duplicadas e ordenar o resultado', async () => {
+    const repo = createMockReviewRepo();
+    const toast = createMockToast();
+
+    const existingReview = {
+      id: 'review-1',
+      userId: 'user-1',
+      name: 'Revisão',
+      color: '#22c55e',
+      scheduledDates: ['2026-08-10'],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    repo.getReviewById.mockResolvedValue(existingReview);
+    repo.updateReview.mockResolvedValue({
+      ...existingReview,
+      scheduledDates: ['2026-08-01', '2026-08-10', '2026-08-15'],
+    });
+
+    const useCase = new AddReviewDayUseCase(repo, toast);
+    const result = await useCase.execute('user-1', 'review-1', [
+      '2026-08-15',
+      '2026-08-10', // duplicada
+      '2026-08-01',
+    ]);
+
+    expect(result.scheduledDates).toEqual(['2026-08-01', '2026-08-10', '2026-08-15']);
+    // Apenas 2 novas datas (15 e 01), 10 é duplicada
+    expect(toast.success).toHaveBeenCalledWith('2 dia(s) adicionado(s) à revisão "Revisão"!');
+  });
+
+  it('deve informar se todas as datas já existem', async () => {
+    const repo = createMockReviewRepo();
+    const toast = createMockToast();
+
+    const existingReview = {
+      id: 'review-1',
+      userId: 'user-1',
+      name: 'Revisão',
+      color: '#22c55e',
+      scheduledDates: ['2026-08-10', '2026-08-15'],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    repo.getReviewById.mockResolvedValue(existingReview);
+
+    const useCase = new AddReviewDayUseCase(repo, toast);
+    const result = await useCase.execute('user-1', 'review-1', ['2026-08-10', '2026-08-15']);
+
+    // Deve retornar a revisão original sem chamar updateReview
+    expect(result).toEqual(existingReview);
+    expect(repo.updateReview).not.toHaveBeenCalled();
+    expect(toast.info).toHaveBeenCalledWith(
+      'As datas selecionadas já estão agendadas para esta revisão.',
+    );
+  });
+
+  it('deve rejeitar se nenhuma data fornecida', async () => {
+    const repo = createMockReviewRepo();
+    const toast = createMockToast();
+
+    const useCase = new AddReviewDayUseCase(repo, toast);
+    await expect(useCase.execute('user-1', 'review-1', [])).rejects.toThrow(ValidationError);
+  });
+
+  it('deve rejeitar data com formato inválido', async () => {
+    const repo = createMockReviewRepo();
+    const toast = createMockToast();
+
+    const useCase = new AddReviewDayUseCase(repo, toast);
+    await expect(useCase.execute('user-1', 'review-1', ['10/08/2026'])).rejects.toThrow(
+      ValidationError,
+    );
+  });
+
+  it('deve lançar NotFoundError se revisão não existir', async () => {
+    const repo = createMockReviewRepo();
+    const toast = createMockToast();
+
+    repo.getReviewById.mockResolvedValue(null);
+
+    const useCase = new AddReviewDayUseCase(repo, toast);
+    await expect(useCase.execute('user-1', 'nonexistent', ['2026-08-10'])).rejects.toThrow(
+      NotFoundError,
+    );
+  });
+
+  it('deve rejeitar se usuário não é dono nem compartilhado', async () => {
+    const repo = createMockReviewRepo();
+    const toast = createMockToast();
+
+    repo.getReviewById.mockResolvedValue({
+      id: 'review-1',
+      userId: 'owner-1',
+      name: 'Revisão',
+      color: '#3b82f6',
+      scheduledDates: ['2026-08-01'],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      // sem sharedWith
+    });
+
+    const useCase = new AddReviewDayUseCase(repo, toast);
+    await expect(useCase.execute('stranger', 'review-1', ['2026-08-10'])).rejects.toThrow(
+      ValidationError,
+    );
+  });
+
+  it('deve permitir que usuário compartilhado adicione datas', async () => {
+    const repo = createMockReviewRepo();
+    const toast = createMockToast();
+
+    const sharedReview = {
+      id: 'review-1',
+      userId: 'owner-1',
+      name: 'Revisão Compartilhada',
+      color: '#3b82f6',
+      scheduledDates: ['2026-08-01'],
+      sharedWith: ['user-2'],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    repo.getReviewById.mockResolvedValue(sharedReview);
+    repo.updateReview.mockResolvedValue({
+      ...sharedReview,
+      scheduledDates: ['2026-08-01', '2026-08-10'],
+    });
+
+    const useCase = new AddReviewDayUseCase(repo, toast);
+    const result = await useCase.execute('user-2', 'review-1', ['2026-08-10']);
+
+    expect(result.scheduledDates).toContain('2026-08-10');
+    expect(toast.success).toHaveBeenCalled();
   });
 });
