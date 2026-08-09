@@ -34,3 +34,6 @@ export { GetSharedStudyProgressUseCase } from './GetSharedStudyProgressUseCase';
 export type { SharedTopicProgress } from './GetSharedStudyProgressUseCase';
 export { GetSharedReviewStatsUseCase } from './GetSharedReviewStatsUseCase';
 export type { SharedReviewStats } from './GetSharedReviewStatsUseCase';
+// Interactive Calendar use cases (Sprint 34)
+export { AddStudyDayUseCase } from './AddStudyDayUseCase';
+export { AddReviewDayUseCase } from './AddReviewDayUseCase';

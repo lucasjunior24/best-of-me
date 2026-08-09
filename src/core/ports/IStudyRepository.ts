@@ -27,6 +27,9 @@ export interface IStudyRepository {
   /** Remove todas as sessions de um tópico para um usuário específico */
   deleteSessionsByTopic(userId: string, topicId: string): Promise<void>;
 
+  /** Atualiza o totalDays de um tópico (usado ao adicionar dias via calendário) */
+  updateTotalDays(topicId: string, totalDays: number, userId: string): Promise<StudyTopic>;
+
   // Progress
   getProgress(userId: string, topicIds?: string[]): Promise<ProgressData>;
 }

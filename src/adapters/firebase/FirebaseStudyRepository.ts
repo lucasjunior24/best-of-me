@@ -311,6 +311,28 @@ export class FirebaseStudyRepository implements IStudyRepository {
     return sessionFromDoc(updatedSnapshot as QueryDocumentSnapshot<DocumentData>);
   }
 
+  // ---- updateTotalDays (Sprint 34 — T34.4) ----------------------------------
+
+  async updateTotalDays(topicId: string, totalDays: number, userId: string): Promise<StudyTopic> {
+    const docRef = doc(this.topicsCollection(userId), topicId);
+    const snapshot = await getDoc(docRef);
+
+    if (!snapshot.exists()) {
+      throw new NotFoundError('StudyTopic', topicId);
+    }
+
+    const updatePayload: Record<string, unknown> = {
+      totalDays,
+      updatedAt: serverTimestamp(),
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await updateDoc(docRef, updatePayload as any);
+
+    const updatedSnapshot = await getDoc(docRef);
+    return topicFromDoc(updatedSnapshot as QueryDocumentSnapshot<DocumentData>);
+  }
+
   // ---- deleteSessionsByTopic -----------------------------------------------
 
   async deleteSessionsByTopic(userId: string, topicId: string): Promise<void> {

@@ -35,6 +35,8 @@ import { GetSummariesUseCase } from '../core/useCases/GetSummariesUseCase';
 import { GetSummaryByIdUseCase } from '../core/useCases/GetSummaryByIdUseCase';
 import { GetSharedStudyProgressUseCase } from '../core/useCases/GetSharedStudyProgressUseCase';
 import { GetSharedReviewStatsUseCase } from '../core/useCases/GetSharedReviewStatsUseCase';
+import { AddStudyDayUseCase } from '../core/useCases/AddStudyDayUseCase';
+import { AddReviewDayUseCase } from '../core/useCases/AddReviewDayUseCase';
 const toastService = new HotToastService();
 const studyRepository = new FirebaseStudyRepository();
 const reviewRepository = new FirebaseReviewRepository();
@@ -105,6 +107,10 @@ const useCases = {
   // Shared progress use cases (Sprint 32)
   sharedStudyProgress: new GetSharedStudyProgressUseCase(studyRepository, sharingRepository),
   sharedReviewStats: new GetSharedReviewStatsUseCase(reviewRepository, reviewSharingRepository),
+
+  // Interactive Calendar use cases (Sprint 34)
+  addStudyDay: new AddStudyDayUseCase(studyRepository, sharingRepository, toastService),
+  addReviewDay: new AddReviewDayUseCase(reviewRepository, toastService),
 };
 
 const container = {

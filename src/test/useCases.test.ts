@@ -24,6 +24,7 @@ function createMockRepo() {
     getProgress: vi.fn(),
     updateSessionNotes: vi.fn(),
     deleteSessionsByTopic: vi.fn(),
+    updateTotalDays: vi.fn(),
   };
 }
 
